@@ -1,0 +1,256 @@
+﻿|-- app
+|   |-- account
+|   |   |-- account.css
+|   |   \-- page.tsx
+|   |-- admin
+|   |   |-- categories
+|   |   |   |-- [categoryId]
+|   |   |   |   \-- page.tsx
+|   |   |   \-- page.tsx
+|   |   |-- components
+|   |   |   |-- AdminHeader.tsx
+|   |   |   \-- AdminSidebar.tsx
+|   |   |-- customers
+|   |   |   |-- [userId]
+|   |   |   |   \-- page.tsx
+|   |   |   \-- page.tsx
+|   |   |-- orders
+|   |   |   |-- [orderId]
+|   |   |   |   \-- page.tsx
+|   |   |   \-- page.tsx
+|   |   |-- payments
+|   |   |   |-- [paymentId]
+|   |   |   |   \-- page.tsx
+|   |   |   \-- page.tsx
+|   |   |-- products
+|   |   |   |-- [productId]
+|   |   |   |   \-- page.tsx
+|   |   |   \-- page.tsx
+|   |   |-- store-owners
+|   |   |   |-- [userId]
+|   |   |   |   \-- page.tsx
+|   |   |   \-- page.tsx
+|   |   |-- stores
+|   |   |   |-- [storeId]
+|   |   |   |   \-- page.tsx
+|   |   |   \-- page.tsx
+|   |   |-- subscriptions
+|   |   |   |-- [subscriptionId]
+|   |   |   \-- page.tsx
+|   |   |-- admin.css
+|   |   |-- layout.tsx
+|   |   \-- page.tsx
+|   |-- api
+|   |   |-- admin
+|   |   |   |-- categories
+|   |   |   |   |-- [categoryId]
+|   |   |   |   |   \-- route.ts
+|   |   |   |   \-- route.ts
+|   |   |   |-- customers
+|   |   |   |   |-- [userId]
+|   |   |   |   |   \-- route.ts
+|   |   |   |   \-- route.ts
+|   |   |   |-- dashboard
+|   |   |   |   \-- route.ts
+|   |   |   |-- orders
+|   |   |   |   |-- [orderId]
+|   |   |   |   |   \-- route.ts
+|   |   |   |   \-- route.ts
+|   |   |   |-- payments
+|   |   |   |   |-- [paymentId]
+|   |   |   |   |   \-- route.ts
+|   |   |   |   \-- route.ts
+|   |   |   |-- products
+|   |   |   |   |-- [productId]
+|   |   |   |   |   \-- route.ts
+|   |   |   |   \-- route.ts
+|   |   |   |-- recent-activity
+|   |   |   |   \-- route.ts
+|   |   |   |-- store-owners
+|   |   |   |   |-- [userId]
+|   |   |   |   |   \-- route.ts
+|   |   |   |   \-- route.ts
+|   |   |   |-- stores
+|   |   |   |   |-- [storeId]
+|   |   |   |   |   \-- route.ts
+|   |   |   |   \-- route.ts
+|   |   |   \-- subscriptions
+|   |   |       |-- [subscriptionId]
+|   |   |       |   \-- route.ts
+|   |   |       \-- route.ts
+|   |   |-- auth
+|   |   |   |-- [...nextauth]
+|   |   |   |   \-- route.ts
+|   |   |   |-- login
+|   |   |   |   \-- route.ts
+|   |   |   \-- register
+|   |   |       \-- route.ts
+|   |   |-- db-test
+|   |   |   \-- route.ts
+|   |   |-- discounts
+|   |   |   \-- route.ts
+|   |   |-- marketplace
+|   |   |   \-- products
+|   |   |       |-- [id]
+|   |   |       |   \-- route.ts
+|   |   |       \-- route.ts
+|   |   |-- orders
+|   |   |   |-- [orderId]
+|   |   |   |   \-- route.ts
+|   |   |   \-- route.ts
+|   |   |-- payments
+|   |   |   \-- chapa
+|   |   |       |-- callback
+|   |   |       |   \-- route.ts
+|   |   |       \-- route.ts
+|   |   |-- products
+|   |   |   |-- image
+|   |   |   |   \-- route.ts
+|   |   |   \-- route.ts
+|   |   |-- store-owner
+|   |   |   \-- orders
+|   |   |       |-- [orderId]
+|   |   |       |   |-- status
+|   |   |       |   |   \-- route.ts
+|   |   |       |   \-- route.ts
+|   |   |       \-- route.ts
+|   |   |-- stores
+|   |   |   \-- route.ts
+|   |   \-- upload
+|   |       \-- image
+|   |           \-- route.ts
+|   |-- cart
+|   |   \-- page.tsx
+|   |-- checkout
+|   |   \-- page.tsx
+|   |-- components
+|   |   |-- AddToCartButton.tsx
+|   |   |-- BusinessCTA.tsx
+|   |   |-- Categories.tsx
+|   |   |-- FeaturedStores.tsx
+|   |   |-- Footer.tsx
+|   |   |-- Hero.tsx
+|   |   |-- HowItWorks.tsx
+|   |   |-- Navbar.tsx
+|   |   |-- SessionProvider.tsx
+|   |   \-- TrendingProducts.tsx
+|   |-- forgot-password
+|   |   \-- page.tsx
+|   |-- generated
+|   |-- login
+|   |   \-- page.tsx
+|   |-- orders
+|   |   |-- [orderId]
+|   |   |   |-- order-details.css
+|   |   |   \-- page.tsx
+|   |   |-- orders.css
+|   |   \-- page.tsx
+|   |-- products
+|   |   |-- [id]
+|   |   |   \-- page.tsx
+|   |   \-- page.tsx
+|   |-- register
+|   |   \-- page.tsx
+|   |-- store-owner
+|   |   |-- analytics
+|   |   |   |-- analytics.css
+|   |   |   \-- page.tsx
+|   |   |-- create-store
+|   |   |   |-- create-store.css
+|   |   |   \-- page.tsx
+|   |   |-- discounts
+|   |   |   |-- discounts.css
+|   |   |   \-- page.tsx
+|   |   |-- help
+|   |   |   |-- help.css
+|   |   |   \-- page.tsx
+|   |   |-- inventory
+|   |   |   |-- inventory.css
+|   |   |   \-- page.tsx
+|   |   |-- orders
+|   |   |   |-- [orderId]
+|   |   |   |   |-- order-details.css
+|   |   |   |   \-- page.tsx
+|   |   |   |-- orders.css
+|   |   |   \-- page.tsx
+|   |   |-- products
+|   |   |   |-- add
+|   |   |   |   |-- add-product.css
+|   |   |   |   \-- page.tsx
+|   |   |   |-- edit
+|   |   |   |   \-- [productId]
+|   |   |   |       \-- page.tsx
+|   |   |   |-- page.tsx
+|   |   |   \-- products.css
+|   |   |-- settings
+|   |   |   |-- page.tsx
+|   |   |   \-- settings.css
+|   |   |-- subscription
+|   |   |   |-- page.tsx
+|   |   |   \-- subscription.css
+|   |   |-- page.tsx
+|   |   \-- store-owner.css
+|   |-- stores
+|   |   |-- [slug]
+|   |   |   \-- page.tsx
+|   |   \-- page.tsx
+|   |-- upload-test
+|   |   \-- page.tsx
+|   |-- favicon.ico
+|   |-- globals.css
+|   |-- layout.tsx
+|   \-- page.tsx
+|-- lib
+|   |-- cloudinary.ts
+|   \-- prisma.ts
+|-- prisma
+|   |-- migrations
+|   |   |-- 20261002220223_initial_beautymart
+|   |   |   \-- migration.sql
+|   |   |-- 20261003085548_add_customer_user_relation
+|   |   |   \-- migration.sql
+|   |   |-- 20261008124031_add_subscription_status
+|   |   |   \-- migration.sql
+|   |   |-- 20261010135836_add_subscription_payments
+|   |   |   \-- migration.sql
+|   |   |-- 20261010150000_reconcile_existing_unique_indexes
+|   |   |   \-- migration.sql
+|   |   \-- migration_lock.toml
+|   \-- schema.prisma
+|-- public
+|   |-- images
+|   |   |-- naturalSkin
+|   |   |   |-- first.png
+|   |   |   \-- second.png
+|   |   |-- africanB.png
+|   |   |-- beuty.png
+|   |   |-- first.png
+|   |   |-- Foreighn.png
+|   |   |-- heroSection.png
+|   |   |-- perfect.png
+|   |   \-- secondPerfect.png
+|   |-- file.svg
+|   |-- globe.svg
+|   |-- next.svg
+|   |-- vercel.svg
+|   \-- window.svg
+|-- scripts
+|   \-- create-admin.ts
+|-- types
+|   \-- next-auth.d.ts
+|-- .env
+|-- .gitignore
+|-- AGENTS.md
+|-- auth.ts
+|-- beautymart-backup-2026-10-10.backup
+|-- beautymart-structure.txt
+|-- CLAUDE.md
+|-- eslint.config.mjs
+|-- next.config.ts
+|-- next-env.d.ts
+|-- package.json
+|-- package-lock.json
+|-- postcss.config.mjs
+|-- prisma7.config.ts
+|-- README.md
+\-- tsconfig.json

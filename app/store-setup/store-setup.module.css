@@ -1,0 +1,467 @@
+
+.page {
+  color: #2d282b;
+  background: #f8f5f0;
+  min-height: 100vh;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  align-items: center;
+  gap: 56px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 88px 32px 96px;
+}
+
+.heroContent {
+  max-width: 650px;
+}
+
+.eyebrow {
+  display: inline-block;
+  color: #8b4b5a;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  margin-bottom: 18px;
+}
+
+.hero h1,
+.sectionHeading h2,
+.detailsGrid h2,
+.planSection h2,
+.finalCta h2 {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+
+.hero h1 {
+  font-size: clamp(2.7rem, 5.5vw, 4.7rem);
+  margin: 0;
+}
+
+.hero h1 span {
+  color: #8b4b5a;
+}
+
+.heroText {
+  max-width: 570px;
+  margin: 24px 0;
+  color: #665e61;
+  font-size: 1.05rem;
+  line-height: 1.85;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+  padding: 13px 21px;
+  border: 1px solid #8b4b5a;
+  border-radius: 7px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  transition: background 180ms ease, color 180ms ease,
+    transform 180ms ease;
+}
+
+.primaryButton {
+  color: #fff;
+  background: #8b4b5a;
+}
+
+.primaryButton:hover {
+  background: #713b48;
+  transform: translateY(-1px);
+}
+
+.secondaryButton {
+  color: #8b4b5a;
+  background: transparent;
+}
+
+.secondaryButton:hover {
+  background: #efe5e4;
+}
+
+.heroNote {
+  margin-top: 17px;
+  color: #756b6e;
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+.heroCard {
+  padding: 32px;
+  border: 1px solid #eadfda;
+  border-radius: 16px;
+  background: #fffdfa;
+  box-shadow: 0 18px 50px rgb(45 40 43 / 6%);
+}
+
+.cardLabel {
+  color: #8b4b5a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.journey {
+  margin: 30px 0;
+}
+
+.journeyItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.journeyNumber {
+  display: grid;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  color: #8b4b5a;
+  background: #f3e8e7;
+  font-weight: 800;
+}
+
+.journeyItem strong {
+  display: block;
+  font-size: 0.98rem;
+}
+
+.journeyItem p {
+  margin: 5px 0 0;
+  color: #776d70;
+  font-size: 0.87rem;
+}
+
+.journeyLine {
+  width: 1px;
+  height: 26px;
+  margin: 5px 0 5px 21px;
+  background: #d9c1c4;
+}
+
+.textLink,
+.planLink {
+  color: #8b4b5a;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.textLink:hover,
+.planLink:hover {
+  text-decoration: underline;
+}
+
+.section {
+  padding: 82px 32px;
+  background: #fffdfa;
+}
+
+.sectionHeading {
+  max-width: 680px;
+  margin: 0 auto 42px;
+  text-align: center;
+}
+
+.sectionHeading h2,
+.detailsGrid h2,
+.planSection h2,
+.finalCta h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.sectionHeading > p,
+.planSection > p,
+.finalCta > p {
+  margin: 16px auto 0;
+  color: #71676a;
+  line-height: 1.8;
+}
+
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stepCard {
+  padding: 26px 23px;
+  border: 1px solid #eee4df;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.stepNumber {
+  display: inline-block;
+  margin-bottom: 22px;
+  color: #8b4b5a;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 2.1rem;
+}
+
+.stepCard h3,
+.planCard h3 {
+  margin: 0 0 12px;
+  font-size: 1.08rem;
+}
+
+.stepCard p {
+  margin: 0;
+  color: #71676a;
+  font-size: 0.92rem;
+  line-height: 1.8;
+}
+
+.detailsSection {
+  padding: 82px 32px;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: start;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.detailsIntro {
+  max-width: 470px;
+  color: #71676a;
+  line-height: 1.85;
+}
+
+.checklist {
+  display: grid;
+  gap: 17px;
+  padding: 28px;
+  border: 1px solid #eadfda;
+  border-radius: 12px;
+  background: #fffdfa;
+}
+
+.checkItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  color: #51494c;
+  line-height: 1.65;
+}
+
+.checkIcon {
+  display: grid;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #8b4b5a;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.planSection {
+  padding: 82px 32px;
+  background: #fffdfa;
+  text-align: center;
+}
+
+.planSection > p {
+  max-width: 650px;
+}
+
+.planCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 740px;
+  margin: 36px auto 0;
+  text-align: left;
+}
+
+.planCard {
+  position: relative;
+  padding: 30px;
+  border: 1px solid #eadfda;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.featuredPlan {
+  border-color: #b77e88;
+}
+
+.planBadge {
+  display: inline-block;
+  margin-bottom: 13px;
+  color: #8b4b5a;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.planPrice {
+  margin: 20px 0 5px;
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.planPrice span {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.planCard > p:not(.planPrice) {
+  color: #71676a;
+}
+
+.planLink {
+  display: inline-block;
+  margin-top: 15px;
+}
+
+.importantNote {
+  max-width: 740px !important;
+  margin-top: 26px !important;
+  font-size: 0.86rem;
+}
+
+.finalCta {
+  padding: 82px 24px 90px;
+  text-align: center;
+}
+
+.finalCta > p {
+  max-width: 620px;
+}
+
+.finalCta .heroActions {
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    padding-top: 64px;
+    padding-bottom: 68px;
+  }
+
+  .heroContent {
+    max-width: 720px;
+  }
+
+  .heroCard {
+    max-width: 650px;
+  }
+
+  .stepsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detailsGrid {
+    gap: 34px;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero,
+  .section,
+  .detailsSection,
+  .planSection {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .hero {
+    padding-top: 48px;
+    padding-bottom: 54px;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.45rem, 11vw, 3.5rem);
+  }
+
+  .heroText {
+    font-size: 0.98rem;
+  }
+
+  .heroActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+  }
+
+  .heroCard {
+    padding: 24px 20px;
+  }
+
+  .section,
+  .detailsSection,
+  .planSection {
+    padding-top: 60px;
+    padding-bottom: 60px;
+  }
+
+  .stepsGrid,
+  .detailsGrid,
+  .planCards {
+    grid-template-columns: 1fr;
+  }
+
+  .stepsGrid {
+    gap: 14px;
+  }
+
+  .stepCard {
+    padding: 22px;
+  }
+
+  .detailsGrid {
+    gap: 24px;
+  }
+
+  .checklist {
+    padding: 22px 18px;
+  }
+
+  .planCard {
+    padding: 25px;
+  }
+
+  .finalCta {
+    padding: 60px 20px;
+  }
+}

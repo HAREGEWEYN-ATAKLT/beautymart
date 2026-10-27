@@ -1,0 +1,185 @@
+// import { NextRequest, NextResponse } from "next/server";
+// import { getToken } from "next-auth/jwt";
+// import { prisma } from "../../../../lib/prisma";
+
+// export async function GET(request: NextRequest) {
+//   try {
+//     const token = await getToken({
+//       req: request,
+//       secret: process.env.NEXTAUTH_SECRET,
+//     });
+
+//     if (!token || token.role !== "SUPER_ADMIN") {
+//       return NextResponse.json(
+//         { error: "Unauthorized" },
+//         { status: 401 }
+//       );
+//     }
+
+//     const storeOwners = await prisma.user.findMany({
+//       where: {
+//         role: "STORE_OWNER",
+//       },
+//       orderBy: {
+//         createdAt: "desc",
+//       },
+//       select: {
+//         userId: true,
+//         fullName: true,
+//         email: true,
+//         phoneNumber: true,
+//         isActive: true,
+//         createdAt: true,
+
+//         stores: {
+//           orderBy: {
+//             createdAt: "desc",
+//           },
+//           select: {
+//             storeId: true,
+//             storeName: true,
+//             status: true,
+
+//             _count: {
+//               select: {
+//                 products: true,
+//                 orders: true,
+//               },
+//             },
+//           },
+//         },
+//       },
+//     });
+
+//     const owners = storeOwners.map((owner) => ({
+//       userId: owner.userId,
+//       fullName: owner.fullName,
+//       email: owner.email,
+//       phoneNumber: owner.phoneNumber,
+//       isActive: owner.isActive,
+//       createdAt: owner.createdAt,
+
+//       storeCount: owner.stores.length,
+
+//       productCount: owner.stores.reduce(
+//         (total, store) => total + store._count.products,
+//         0
+//       ),
+
+//       orderCount: owner.stores.reduce(
+//         (total, store) => total + store._count.orders,
+//         0
+//       ),
+
+//       stores: owner.stores.map((store) => ({
+//         storeId: store.storeId,
+//         storeName: store.storeName,
+//         status: store.status,
+//         productCount: store._count.products,
+//         orderCount: store._count.orders,
+//       })),
+//     }));
+
+//     return NextResponse.json({
+//       owners,
+//     });
+//   } catch (error) {
+//     console.error("Admin store owners error:", error);
+
+//     return NextResponse.json(
+//       { error: "Failed to load store owners" },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { prisma } from "../../../../lib/prisma";
+
+export async function GET(request: NextRequest) {
+  try {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    if (!token || token.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const storeOwners = await prisma.user.findMany({
+      where: {
+        role: "STORE_OWNER",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        userId: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        isActive: true,
+        createdAt: true,
+
+        // Each owner has one optional store in the current schema.
+        store: {
+          select: {
+            storeId: true,
+            storeName: true,
+            status: true,
+            _count: {
+              select: {
+                products: true,
+                orders: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const owners = storeOwners.map((owner) => {
+      const store = owner.store;
+
+      return {
+        userId: owner.userId,
+        fullName: owner.fullName,
+        email: owner.email,
+        phoneNumber: owner.phoneNumber,
+        isActive: owner.isActive,
+        createdAt: owner.createdAt,
+
+        storeCount: store ? 1 : 0,
+        productCount: store?._count.products ?? 0,
+        orderCount: store?._count.orders ?? 0,
+
+        // Keep the existing array response shape for the admin UI.
+        stores: store
+          ? [
+              {
+                storeId: store.storeId,
+                storeName: store.storeName,
+                status: store.status,
+                productCount: store._count.products,
+                orderCount: store._count.orders,
+              },
+            ]
+          : [],
+      };
+    });
+
+    return NextResponse.json({ owners });
+  } catch (error) {
+    console.error("Admin store owners error:", error);
+
+    return NextResponse.json(
+      { error: "Failed to load store owners" },
+      { status: 500 }
+    );
+  }
+}

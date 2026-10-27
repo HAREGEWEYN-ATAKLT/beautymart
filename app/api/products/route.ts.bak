@@ -1,0 +1,902 @@
+
+
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { prisma } from "../../../lib/prisma";
+
+async function checkStoreSubscription(
+  storeId: string,
+  ownerId: string
+): Promise<NextResponse | null> {
+  const store = await prisma.store.findFirst({
+    where: {
+      storeId,
+      ownerId,
+    },
+    include: {
+      subscription: true,
+    },
+  });
+
+  if (!store) {
+    return NextResponse.json(
+      { message: "Store not found or access denied." },
+      { status: 403 }
+    );
+  }
+const subscriptionError = await checkStoreSubscription(
+  store.storeId,
+  String(token.id)
+);
+
+if (subscriptionError) {
+  return subscriptionError;
+}
+  const subscription = store.subscription;
+
+  if (!subscription) {
+    return NextResponse.json(
+      { message: "This store has no subscription. Contact the administrator." },
+      { status: 403 }
+    );
+  }
+
+  if (subscription.status === "SUSPENDED") {
+    return NextResponse.json(
+      { message: "This store's subscription is suspended. Contact the administrator to restore access." },
+      { status: 403 }
+    );
+  }
+
+  if (subscription.status === "CANCELLED") {
+    return NextResponse.json(
+      { message: "This store's subscription is cancelled. Restore or renew it before managing products." },
+      { status: 403 }
+    );
+  }
+
+  if (
+    subscription.status === "EXPIRED" ||
+    subscription.endDate <= new Date() ||
+    !subscription.isActive
+  ) {
+    return NextResponse.json(
+      { message: "This store's subscription has expired or is inactive. Renew or reactivate it before managing products." },
+      { status: 403 }
+    );
+  }
+
+  return null;
+}
+/*
+|--------------------------------------------------------------------------
+| GET /api/products
+|--------------------------------------------------------------------------
+| Get the products belonging to the logged-in Store Owner's selected store.
+|--------------------------------------------------------------------------
+*/
+
+export async function GET(request: Request) {
+  try {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: false,
+    });
+
+    if (!token?.id) {
+      return NextResponse.json(
+        { message: "You must be logged in." },
+        { status: 401 }
+      );
+    }
+
+    if (token.role !== "STORE_OWNER") {
+      return NextResponse.json(
+        { message: "Only Store Owners can manage products." },
+        { status: 403 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const storeId = searchParams.get("storeId");
+
+    if (!storeId) {
+      return NextResponse.json(
+        { message: "Store ID is required." },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * IMPORTANT:
+     * We don't simply trust the storeId from the browser.
+     * We check that this store belongs to the logged-in owner.
+     */
+    const store = await prisma.store.findFirst({
+      where: {
+        storeId,
+        ownerId: String(token.id),
+      },
+    });
+
+    if (!store) {
+      return NextResponse.json(
+        { message: "You do not have access to this store." },
+        { status: 403 }
+      );
+    }
+
+    const products = await prisma.product.findMany({
+      where: {
+        storeId: store.storeId,
+      },
+      include: {
+        category: true,
+        inventory: true,
+        images: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json({
+      products,
+    });
+  } catch (error) {
+    console.error("Get products error:", error);
+
+    return NextResponse.json(
+      { message: "Something went wrong while getting products." },
+      { status: 500 }
+    );
+  }
+}
+
+/*
+|--------------------------------------------------------------------------
+| POST /api/products
+|--------------------------------------------------------------------------
+| Create a product for a specific store.
+|--------------------------------------------------------------------------
+*/
+
+export async function POST(request: Request) {
+  try {
+    // ------------------------------------------------------------
+    // 1. Get logged-in user
+    // ------------------------------------------------------------
+
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: false,
+    });
+
+    if (!token?.id) {
+      return NextResponse.json(
+        { message: "You must be logged in." },
+        { status: 401 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 2. Only Store Owners can create products
+    // ------------------------------------------------------------
+
+    if (token.role !== "STORE_OWNER") {
+      return NextResponse.json(
+        {
+          message: "Only Store Owners can create products.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 3. Read request body
+    // ------------------------------------------------------------
+
+    const body = await request.json();
+
+    const {
+      storeId,
+      productName,
+      categoryName,
+      description,
+      price,
+      quantity,
+      imageUrl,
+    } = body;
+
+    // ------------------------------------------------------------
+    // 4. Validate required fields
+    // ------------------------------------------------------------
+
+    if (!storeId) {
+      return NextResponse.json(
+        { message: "Store ID is required." },
+        { status: 400 }
+      );
+    }
+
+    if (!productName?.trim()) {
+      return NextResponse.json(
+        { message: "Product name is required." },
+        { status: 400 }
+      );
+    }
+
+    if (!categoryName?.trim()) {
+      return NextResponse.json(
+        { message: "Category is required." },
+        { status: 400 }
+      );
+    }
+
+    if (price === undefined || price === null || price === "") {
+      return NextResponse.json(
+        { message: "Product price is required." },
+        { status: 400 }
+      );
+    }
+
+    if (quantity === undefined || quantity === null || quantity === "") {
+      return NextResponse.json(
+        { message: "Initial stock is required." },
+        { status: 400 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 5. Convert and validate price
+    // ------------------------------------------------------------
+
+    const productPrice = Number(price);
+
+    if (!Number.isFinite(productPrice) || productPrice < 0) {
+      return NextResponse.json(
+        { message: "Please enter a valid product price." },
+        { status: 400 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 6. Convert and validate quantity
+    // ------------------------------------------------------------
+
+    const productQuantity = Number(quantity);
+
+    if (
+      !Number.isInteger(productQuantity) ||
+      productQuantity < 0
+    ) {
+      return NextResponse.json(
+        { message: "Please enter a valid stock quantity." },
+        { status: 400 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 7. Verify Store Ownership
+    // ------------------------------------------------------------
+    //
+    // The browser sends storeId.
+    //
+    // But we NEVER assume the browser is telling the truth.
+    //
+    // We check:
+    //
+    //      storeId
+    //          +
+    //      logged-in user's ID
+    //
+    // If the store doesn't belong to the user -> reject.
+    // ------------------------------------------------------------
+
+    const store = await prisma.store.findFirst({
+      where: {
+        storeId: String(storeId),
+        ownerId: String(token.id),
+      },
+    });
+
+    if (!store) {
+      return NextResponse.json(
+        {
+          message:
+            "You do not have permission to add products to this store.",
+        },
+        { status: 403 }
+      );
+    }
+const subscriptionError = await checkStoreSubscription(
+  store.storeId,
+  String(token.id)
+);
+
+if (subscriptionError) {
+  return subscriptionError;
+}
+    // ------------------------------------------------------------
+    // 8. Find or create category for THIS store
+    // ------------------------------------------------------------
+
+    const category = await prisma.category.upsert({
+      where: {
+        storeId_categoryName: {
+          storeId: store.storeId,
+          categoryName: String(categoryName).trim(),
+        },
+      },
+
+      update: {},
+
+      create: {
+        storeId: store.storeId,
+        categoryName: String(categoryName).trim(),
+      },
+    });
+
+    // ------------------------------------------------------------
+    // 9. Create Product + Inventory + Image
+    // ------------------------------------------------------------
+
+    const product = await prisma.$transaction(async (tx) => {
+      const newProduct = await tx.product.create({
+        data: {
+          storeId: store.storeId,
+
+          categoryId: category.categoryId,
+
+          productName: String(productName).trim(),
+
+          description: description
+            ? String(description).trim()
+            : null,
+
+          price: productPrice,
+
+          isActive: true,
+
+          // Create inventory automatically
+          inventory: {
+            create: {
+              quantity: productQuantity,
+              minimumStock: 0,
+            },
+          },
+
+          // Create image only when imageUrl exists
+          ...(imageUrl
+            ? {
+                images: {
+                  create: {
+                    imageUrl: String(imageUrl),
+                    isPrimary: true,
+                  },
+                },
+              }
+            : {}),
+        },
+
+        include: {
+          category: true,
+          inventory: true,
+          images: true,
+          store: true,
+        },
+      });
+
+      return newProduct;
+    });
+
+    // ------------------------------------------------------------
+    // 10. Success
+    // ------------------------------------------------------------
+
+    return NextResponse.json(
+      {
+        message: "Product created successfully.",
+        product,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Product creation error:", error);
+
+    return NextResponse.json(
+      {
+        message:
+          "Something went wrong while creating the product.",
+      },
+      { status: 500 }
+    );
+  }
+}
+/*
+|--------------------------------------------------------------------------
+| PUT /api/products
+|--------------------------------------------------------------------------
+| Update an existing product belonging to the logged-in Store Owner.
+|--------------------------------------------------------------------------
+*/
+
+export async function PUT(request: Request) {
+  try {
+    // ------------------------------------------------------------
+    // 1. Get logged-in user
+    // ------------------------------------------------------------
+
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: false,
+    });
+
+    if (!token?.id) {
+      return NextResponse.json(
+        { message: "You must be logged in." },
+        { status: 401 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 2. Only Store Owners can edit products
+    // ------------------------------------------------------------
+
+    if (token.role !== "STORE_OWNER") {
+      return NextResponse.json(
+        {
+          message: "Only Store Owners can edit products.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 3. Read request body
+    // ------------------------------------------------------------
+
+    const body = await request.json();
+
+    const {
+      productId,
+      productName,
+      categoryName,
+      description,
+      price,
+      quantity,
+    } = body;
+
+    // ------------------------------------------------------------
+    // 4. Validate product ID
+    // ------------------------------------------------------------
+
+    if (!productId) {
+      return NextResponse.json(
+        { message: "Product ID is required." },
+        { status: 400 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 5. Validate product name
+    // ------------------------------------------------------------
+
+    if (!productName?.trim()) {
+      return NextResponse.json(
+        { message: "Product name is required." },
+        { status: 400 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 6. Validate category
+    // ------------------------------------------------------------
+
+    if (!categoryName?.trim()) {
+      return NextResponse.json(
+        { message: "Category is required." },
+        { status: 400 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 7. Validate price
+    // ------------------------------------------------------------
+
+    if (price === undefined || price === null || price === "") {
+      return NextResponse.json(
+        { message: "Product price is required." },
+        { status: 400 }
+      );
+    }
+
+    const productPrice = Number(price);
+
+    if (!Number.isFinite(productPrice) || productPrice < 0) {
+      return NextResponse.json(
+        { message: "Please enter a valid product price." },
+        { status: 400 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 8. Validate quantity
+    // ------------------------------------------------------------
+
+    if (quantity === undefined || quantity === null || quantity === "") {
+      return NextResponse.json(
+        { message: "Stock quantity is required." },
+        { status: 400 }
+      );
+    }
+
+    const productQuantity = Number(quantity);
+
+    if (
+      !Number.isInteger(productQuantity) ||
+      productQuantity < 0
+    ) {
+      return NextResponse.json(
+        { message: "Please enter a valid stock quantity." },
+        { status: 400 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 9. Find the product
+    // ------------------------------------------------------------
+
+    const existingProduct = await prisma.product.findUnique({
+      where: {
+        productId: String(productId),
+      },
+      include: {
+        store: true,
+        inventory: true,
+      },
+    });
+
+    if (!existingProduct) {
+      return NextResponse.json(
+        { message: "Product not found." },
+        { status: 404 }
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 10. IMPORTANT: Verify ownership
+    // ------------------------------------------------------------
+
+    if (existingProduct.store.ownerId !== String(token.id)) {
+      return NextResponse.json(
+        {
+          message:
+            "You do not have permission to edit this product.",
+        },
+        { status: 403 }
+      );
+    }
+const subscriptionError = await checkStoreSubscription(
+  existingProduct.storeId,
+  String(token.id)
+);
+
+if (subscriptionError) {
+  return subscriptionError;
+}
+    // ------------------------------------------------------------
+    // 11. Find or create category inside the same store
+    // ------------------------------------------------------------
+
+    const category = await prisma.category.upsert({
+      where: {
+        storeId_categoryName: {
+          storeId: existingProduct.storeId,
+          categoryName: String(categoryName).trim(),
+        },
+      },
+
+      update: {},
+
+      create: {
+        storeId: existingProduct.storeId,
+        categoryName: String(categoryName).trim(),
+      },
+    });
+
+    // ------------------------------------------------------------
+    // 12. Update Product + Inventory
+    // ------------------------------------------------------------
+
+    const updatedProduct = await prisma.$transaction(async (tx) => {
+      const product = await tx.product.update({
+        where: {
+          productId: existingProduct.productId,
+        },
+
+        data: {
+          productName: String(productName).trim(),
+
+          categoryId: category.categoryId,
+
+          description: description
+            ? String(description).trim()
+            : null,
+
+          price: productPrice,
+        },
+
+        include: {
+          category: true,
+          inventory: true,
+          images: true,
+          store: true,
+        },
+      });
+
+      // ----------------------------------------------------------
+      // Update existing inventory
+      // ----------------------------------------------------------
+
+      if (existingProduct.inventory) {
+        await tx.inventory.update({
+          where: {
+            productId: existingProduct.productId,
+          },
+
+          data: {
+            quantity: productQuantity,
+          },
+        });
+      } else {
+        // Safety fallback:
+        // If somehow the product has no inventory record,
+        // create one.
+        await tx.inventory.create({
+          data: {
+            productId: existingProduct.productId,
+            quantity: productQuantity,
+            minimumStock: 0,
+          },
+        });
+      }
+
+      // Get the product again with the updated inventory
+      return await tx.product.findUnique({
+        where: {
+          productId: existingProduct.productId,
+        },
+        include: {
+          category: true,
+          inventory: true,
+          images: true,
+          store: true,
+        },
+      });
+    });
+
+    // ------------------------------------------------------------
+    // 13. Success
+    // ------------------------------------------------------------
+
+    return NextResponse.json(
+      {
+        message: "Product updated successfully.",
+        product: updatedProduct,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Product update error:", error);
+
+    return NextResponse.json(
+      {
+        message:
+          "Something went wrong while updating the product.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: false,
+    });
+
+    if (!token?.id) {
+      return NextResponse.json(
+        { message: "You must be logged in." },
+        { status: 401 }
+      );
+    }
+
+    if (token.role !== "STORE_OWNER") {
+      return NextResponse.json(
+        {
+          message: "Only Store Owners can delete products.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { productId } = body;
+
+    if (!productId) {
+      return NextResponse.json(
+        { message: "Product ID is required." },
+        { status: 400 }
+      );
+    }
+
+    const product = await prisma.product.findUnique({
+      where: {
+        productId: String(productId),
+      },
+      include: {
+        store: true,
+      },
+    });
+
+    if (!product) {
+      return NextResponse.json(
+        { message: "Product not found." },
+        { status: 404 }
+      );
+    }
+
+    if (product.store.ownerId !== String(token.id)) {
+      return NextResponse.json(
+        {
+          message:
+            "You do not have permission to delete this product.",
+        },
+        { status: 403 }
+      );
+    }
+const subscriptionError = await checkStoreSubscription(
+  product.storeId,
+  String(token.id)
+);
+
+if (subscriptionError) {
+  return subscriptionError;
+}
+    await prisma.product.delete({
+      where: {
+        productId: product.productId,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        message: "Product deleted successfully.",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Product deletion error:", error);
+
+    return NextResponse.json(
+      {
+        message:
+          "Something went wrong while deleting the product.",
+      },
+      { status: 500 }
+    );
+  }
+}
+export async function PATCH(request: Request) {
+  try {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: false,
+    });
+
+    if (!token?.id) {
+      return NextResponse.json(
+        { message: "You must be logged in." },
+        { status: 401 }
+      );
+    }
+
+    if (token.role !== "STORE_OWNER") {
+      return NextResponse.json(
+        {
+          message:
+            "Only Store Owners can change product status.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+
+    const { productId, isActive } = body;
+
+    if (!productId) {
+      return NextResponse.json(
+        { message: "Product ID is required." },
+        { status: 400 }
+      );
+    }
+
+    if (typeof isActive !== "boolean") {
+      return NextResponse.json(
+        { message: "Product status must be true or false." },
+        { status: 400 }
+      );
+    }
+
+    const product = await prisma.product.findUnique({
+      where: {
+        productId: String(productId),
+      },
+      include: {
+        store: true,
+      },
+    });
+
+    if (!product) {
+      return NextResponse.json(
+        { message: "Product not found." },
+        { status: 404 }
+      );
+    }
+
+    if (product.store.ownerId !== String(token.id)) {
+      return NextResponse.json(
+        {
+          message:
+            "You do not have permission to change this product.",
+        },
+        { status: 403 }
+      );
+    }
+const subscriptionError = await checkStoreSubscription(
+  product.storeId,
+  String(token.id)
+);
+
+if (subscriptionError) {
+  return subscriptionError;
+}
+    const updatedProduct = await prisma.product.update({
+      where: {
+        productId: product.productId,
+      },
+      data: {
+        isActive,
+      },
+    });
+
+    return NextResponse.json(
+      {
+        message: isActive
+          ? "Product activated successfully."
+          : "Product deactivated successfully.",
+        product: updatedProduct,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Product status update error:", error);
+
+    return NextResponse.json(
+      {
+        message:
+          "Something went wrong while changing the product status.",
+      },
+      { status: 500 }
+    );
+  }
+}

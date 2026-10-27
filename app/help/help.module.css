@@ -1,0 +1,255 @@
+
+.page {
+  min-height: 100vh;
+  color: #2d282b;
+  background: #f8f5f0;
+}
+
+.hero {
+  padding: 76px 24px 82px;
+  text-align: center;
+  background: #f2e9e5;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: #8b4b5a;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.hero h1,
+.sectionHeading h2,
+.bottomCta h2 {
+  margin: 0;
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.hero h1 {
+  font-size: clamp(2.5rem, 6vw, 4.2rem);
+}
+
+.hero h1 span {
+  color: #8b4b5a;
+}
+
+.hero > p,
+.bottomCta > p {
+  max-width: 660px;
+  margin: 20px auto 0;
+  color: #6d6266;
+  line-height: 1.8;
+}
+
+.heroActions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  min-height: 46px;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 20px;
+  border: 1px solid #8b4b5a;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 160ms ease;
+}
+
+.primaryButton {
+  color: white;
+  background: #8b4b5a;
+}
+
+.primaryButton:hover {
+  background: #713b48;
+}
+
+.secondaryButton {
+  color: #8b4b5a;
+  background: transparent;
+}
+
+.secondaryButton:hover {
+  background: #fffdfa;
+}
+
+.content,
+.faqSection {
+  padding: 72px 24px;
+}
+
+.sectionHeading {
+  margin-bottom: 34px;
+  text-align: center;
+}
+
+.sectionHeading h2,
+.bottomCta h2 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+}
+
+.groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 1150px;
+  margin: 0 auto;
+}
+
+.groupCard {
+  padding: 26px;
+  border: 1px solid #eadfda;
+  border-radius: 12px;
+  background: #fffdfa;
+}
+
+.groupCard h3 {
+  margin: 0 0 12px;
+  font-size: 1.12rem;
+}
+
+.groupCard > p {
+  min-height: 78px;
+  margin: 0;
+  color: #71676a;
+  font-size: 0.92rem;
+  line-height: 1.75;
+}
+
+.groupCard ul {
+  display: grid;
+  gap: 0;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.groupCard li {
+  border-top: 1px solid #eee5e0;
+}
+
+.groupCard li a {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  color: #8b4b5a;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.groupCard li a:hover {
+  color: #63313e;
+}
+
+.faqSection {
+  background: #fffdfa;
+}
+
+.faqList {
+  display: grid;
+  gap: 12px;
+  max-width: 850px;
+  margin: 0 auto;
+}
+
+.faqItem {
+  padding: 20px 22px;
+  border: 1px solid #eadfda;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.faqItem summary {
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.faqItem summary::marker {
+  color: #8b4b5a;
+}
+
+.faqItem p {
+  margin: 14px 0 0;
+  color: #71676a;
+  font-size: 0.94rem;
+  line-height: 1.8;
+}
+
+.bottomCta {
+  padding: 72px 24px 82px;
+  text-align: center;
+}
+
+.bottomCta > p {
+  margin-bottom: 24px;
+}
+
+@media (max-width: 850px) {
+  .groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .groupCard:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .groupCard > p {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 580px) {
+  .hero {
+    padding: 56px 20px;
+  }
+
+  .heroActions {
+    flex-direction: column;
+  }
+
+  .heroActions a {
+    width: 100%;
+  }
+
+  .content,
+  .faqSection {
+    padding: 56px 18px;
+  }
+
+  .groups {
+    grid-template-columns: 1fr;
+  }
+
+  .groupCard:last-child {
+    grid-column: auto;
+  }
+
+  .groupCard {
+    padding: 22px;
+  }
+
+  .faqItem {
+    padding: 17px;
+  }
+
+  .bottomCta {
+    padding: 56px 20px;
+  }
+}

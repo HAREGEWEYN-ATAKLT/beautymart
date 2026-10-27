@@ -1,0 +1,150 @@
+.account-page {
+  min-height: calc(100vh - 80px);
+  background: #f8f5f0;
+  padding: 70px 24px;
+}
+
+.account-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.account-eyebrow {
+  margin: 0 0 12px;
+  color: #8b4b5a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.account-container h1 {
+  margin: 0;
+  color: #262020;
+  font-size: clamp(38px, 5vw, 58px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.account-intro {
+  max-width: 600px;
+  margin: 18px 0 40px;
+  color: #746c68;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.account-card {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 28px;
+  margin-bottom: 24px;
+  background: #ffffff;
+  border: 1px solid #eee5df;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(55, 38, 32, 0.05);
+}
+
+.account-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #8b4b5a;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.account-info h2 {
+  margin: 0 0 7px;
+  color: #292222;
+  font-size: 22px;
+}
+
+.account-info p {
+  margin: 0 0 10px;
+  color: #746c68;
+  font-size: 14px;
+}
+
+.account-info span {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f4e9e7;
+  color: #8b4b5a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.account-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.account-action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 26px;
+  background: #ffffff;
+  border: 1px solid #eee5df;
+  border-radius: 18px;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.account-action-card:hover {
+  transform: translateY(-3px);
+  border-color: #d8c2bd;
+  box-shadow: 0 14px 35px rgba(55, 38, 32, 0.08);
+}
+
+.account-action-card strong {
+  color: #292222;
+  font-size: 17px;
+}
+
+.account-action-card span {
+  color: #746c68;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.account-button {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 24px;
+  padding: 13px 20px;
+  border-radius: 10px;
+  background: #8b4b5a;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+@media (max-width: 650px) {
+  .account-page {
+    padding: 45px 18px;
+  }
+
+  .account-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .account-actions {
+    grid-template-columns: 1fr;
+  }
+}

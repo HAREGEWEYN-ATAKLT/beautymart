@@ -1,0 +1,148 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { prisma } from "../../../../../lib/prisma";
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ userId: string }> }
+) {
+  try {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    if (!token || token.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { userId } = await params;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const owner = await prisma.user.findFirst({
+      where: {
+        userId,
+        role: "STORE_OWNER",
+      },
+      select: {
+        userId: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+
+        stores: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            storeId: true,
+            storeName: true,
+            description: true,
+            logoUrl: true,
+            bannerUrl: true,
+            email: true,
+            phone: true,
+            address: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+
+            subscription: true,
+
+            _count: {
+              select: {
+                products: true,
+                orders: true,
+                categories: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!owner) {
+      return NextResponse.json(
+        { error: "Store owner not found" },
+        { status: 404 }
+      );
+    }
+
+    const totalStores = owner.stores.length;
+
+    const totalProducts = owner.stores.reduce(
+      (total, store) => total + store._count.products,
+      0
+    );
+
+    const totalOrders = owner.stores.reduce(
+      (total, store) => total + store._count.orders,
+      0
+    );
+
+    const totalCategories = owner.stores.reduce(
+      (total, store) => total + store._count.categories,
+      0
+    );
+
+    return NextResponse.json({
+      owner: {
+        userId: owner.userId,
+        fullName: owner.fullName,
+        email: owner.email,
+        phoneNumber: owner.phoneNumber,
+        isActive: owner.isActive,
+        createdAt: owner.createdAt,
+        updatedAt: owner.updatedAt,
+
+        statistics: {
+          totalStores,
+          totalProducts,
+          totalOrders,
+          totalCategories,
+        },
+
+        stores: owner.stores.map((store) => ({
+          storeId: store.storeId,
+          storeName: store.storeName,
+          description: store.description,
+          logoUrl: store.logoUrl,
+          bannerUrl: store.bannerUrl,
+          email: store.email,
+          phone: store.phone,
+          address: store.address,
+          status: store.status,
+          createdAt: store.createdAt,
+          updatedAt: store.updatedAt,
+
+          subscription: store.subscription,
+
+          statistics: {
+            products: store._count.products,
+            orders: store._count.orders,
+            categories: store._count.categories,
+          },
+        })),
+      },
+    });
+  } catch (error) {
+    console.error("Admin store owner details error:", error);
+
+    return NextResponse.json(
+      { error: "Failed to load store owner details" },
+      { status: 500 }
+    );
+  }
+}

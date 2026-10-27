@@ -1,0 +1,343 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { prisma } from "../../../../../lib/prisma";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
+) {
+  try {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    if (!token || token.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { userId } = await params;
+
+    const customer = await prisma.customer.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        customerId: true,
+        userId: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        createdAt: true,
+
+        user: {
+          select: {
+            userId: true,
+            fullName: true,
+            email: true,
+            phoneNumber: true,
+            role: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+
+        addresses: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            addressId: true,
+            region: true,
+            city: true,
+            subCity: true,
+            woreda: true,
+            houseNumber: true,
+            createdAt: true,
+          },
+        },
+
+        orders: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            orderId: true,
+            orderNumber: true,
+            totalAmount: true,
+            discountAmount: true,
+            finalAmount: true,
+            paymentStatus: true,
+            orderStatus: true,
+            createdAt: true,
+
+            store: {
+              select: {
+                storeId: true,
+                storeName: true,
+                status: true,
+              },
+            },
+
+            address: {
+              select: {
+                addressId: true,
+                region: true,
+                city: true,
+                subCity: true,
+                woreda: true,
+                houseNumber: true,
+              },
+            },
+
+            items: {
+              select: {
+                orderItemId: true,
+                quantity: true,
+                unitPrice: true,
+                discountAmount: true,
+                totalPrice: true,
+
+                product: {
+                  select: {
+                    productId: true,
+                    productName: true,
+                  },
+                },
+              },
+            },
+
+            payments: {
+              orderBy: {
+                createdAt: "desc",
+              },
+              select: {
+                paymentId: true,
+                provider: true,
+                transactionReference: true,
+                amount: true,
+                status: true,
+                paidAt: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!customer) {
+      return NextResponse.json(
+        { error: "Customer not found" },
+        { status: 404 }
+      );
+    }
+
+    const totalOrders = customer.orders.length;
+
+    const paidOrders = customer.orders.filter(
+      (order) => order.paymentStatus === "PAID"
+    );
+
+    const totalSpent = paidOrders.reduce(
+      (total, order) => total + Number(order.finalAmount),
+      0
+    );
+
+    const totalAddresses = customer.addresses.length;
+
+    const totalItems = customer.orders.reduce(
+      (total, order) =>
+        total +
+        order.items.reduce(
+          (itemTotal, item) => itemTotal + item.quantity,
+          0
+        ),
+      0
+    );
+
+    const formattedCustomer = {
+      customerId: customer.customerId,
+      userId: customer.userId,
+      fullName: customer.fullName,
+      email: customer.email,
+      phoneNumber: customer.phoneNumber,
+      createdAt: customer.createdAt,
+
+      account: {
+        role: customer.user.role,
+        isActive: customer.user.isActive,
+        createdAt: customer.user.createdAt,
+        updatedAt: customer.user.updatedAt,
+      },
+    };
+
+    const formattedAddresses = customer.addresses.map(
+      (address) => ({
+        addressId: address.addressId,
+        region: address.region,
+        city: address.city,
+        subCity: address.subCity,
+        woreda: address.woreda,
+        houseNumber: address.houseNumber,
+        createdAt: address.createdAt,
+      })
+    );
+
+    const formattedOrders = customer.orders.map((order) => ({
+      orderId: order.orderId,
+      orderNumber: order.orderNumber,
+
+      totalAmount: Number(order.totalAmount),
+      discountAmount: Number(order.discountAmount),
+      finalAmount: Number(order.finalAmount),
+
+      paymentStatus: order.paymentStatus,
+      orderStatus: order.orderStatus,
+      createdAt: order.createdAt,
+
+      store: order.store
+        ? {
+            storeId: order.store.storeId,
+            storeName: order.store.storeName,
+            status: order.store.status,
+          }
+        : null,
+
+      address: order.address
+        ? {
+            addressId: order.address.addressId,
+            region: order.address.region,
+            city: order.address.city,
+            subCity: order.address.subCity,
+            woreda: order.address.woreda,
+            houseNumber: order.address.houseNumber,
+          }
+        : null,
+
+      items: order.items.map((item) => ({
+        orderItemId: item.orderItemId,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        discountAmount: Number(item.discountAmount),
+        totalPrice: Number(item.totalPrice),
+
+        product: item.product
+          ? {
+              productId: item.product.productId,
+              productName: item.product.productName,
+            }
+          : null,
+      })),
+
+      payments: order.payments.map((payment) => ({
+        paymentId: payment.paymentId,
+        provider: payment.provider,
+        transactionReference:
+          payment.transactionReference,
+        amount: Number(payment.amount),
+        status: payment.status,
+        paidAt: payment.paidAt,
+        createdAt: payment.createdAt,
+      })),
+    }));
+
+    return NextResponse.json({
+      customer: formattedCustomer,
+
+      statistics: {
+        totalOrders,
+        paidOrders: paidOrders.length,
+        totalAddresses,
+        totalItems,
+        totalSpent,
+      },
+
+      addresses: formattedAddresses,
+
+      orders: formattedOrders,
+    });
+  } catch (error) {
+    console.error("Admin customer details error:", error);
+
+    return NextResponse.json(
+      { error: "Failed to load customer details" },
+      { status: 500 }
+    );
+  }
+}
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ userId: string }> }
+) {
+  try {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    if (!token || token.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { userId } = await params;
+
+    const body = await request.json();
+    const { isActive } = body;
+
+    if (typeof isActive !== "boolean") {
+      return NextResponse.json(
+        { error: "isActive must be a boolean" },
+        { status: 400 }
+      );
+    }
+
+    const customer = await prisma.user.findUnique({
+      where: { userId },
+      select: {
+        userId: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+    if (!customer || customer.role !== "CUSTOMER") {
+      return NextResponse.json(
+        { error: "Customer not found" },
+        { status: 404 }
+      );
+    }
+
+    const updatedCustomer = await prisma.user.update({
+      where: { userId },
+      data: {
+        isActive,
+      },
+      select: {
+        userId: true,
+        isActive: true,
+      },
+    });
+
+    return NextResponse.json({
+      message: isActive
+        ? "Customer activated successfully"
+        : "Customer deactivated successfully",
+      customer: updatedCustomer,
+    });
+  } catch (error) {
+    console.error("Admin customer status update error:", error);
+
+    return NextResponse.json(
+      { error: "Failed to update customer status" },
+      { status: 500 }
+    );
+  }
+}

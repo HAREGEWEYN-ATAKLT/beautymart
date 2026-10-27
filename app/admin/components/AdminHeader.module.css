@@ -1,0 +1,278 @@
+
+.notificationWrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dismissLayer {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.dropdown {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 14px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(390px, calc(100vw - 28px));
+  max-height: min(560px, calc(100dvh - 100px));
+  overflow: hidden;
+  border: 1px solid #eee3e4;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 55px rgb(45 32 37 / 16%);
+  color: #30282b;
+}
+
+.dropdownHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 19px 19px 16px;
+  border-bottom: 1px solid #f1e9e9;
+}
+
+.dropdownHeader h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.dropdownHeader p {
+  margin: 6px 0 0;
+  color: #8a7b80;
+  font-size: 12px;
+}
+
+.closeButton {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-top: -4px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #807176;
+  font-size: 23px;
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  background: #f8f1f2;
+  color: #8b4b5a;
+}
+
+.seeAllButton,
+.footerButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 43px;
+  padding: 0 19px;
+  border: 0;
+  background: #fcf8f8;
+  color: #8b4b5a;
+  font-size: 12px;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+
+.seeAllButton {
+  border-bottom: 1px solid #f1e9e9;
+}
+
+.seeAllButton:hover,
+.footerButton:hover {
+  background: #f8eff1;
+}
+
+.notificationList {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.notificationItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 15px 17px;
+  border: 0;
+  border-bottom: 1px solid #f3eded;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notificationItem:hover {
+  background: #fcf8f8;
+}
+
+.unread {
+  background: #fffafb;
+}
+
+.typeIcon {
+  display: flex;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.typeORDER {
+  background: #f7e9ed;
+  color: #8b4b5a;
+}
+
+.typePAYMENT {
+  background: #e9f5ed;
+  color: #34734e;
+}
+
+.typeINVENTORY {
+  background: #fff2df;
+  color: #9b681f;
+}
+
+.typeSUBSCRIPTION {
+  background: #efebfa;
+  color: #6952a2;
+}
+
+.typeSYSTEM {
+  background: #eaf0f8;
+  color: #496c96;
+}
+
+.itemContent {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.itemHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.itemHeading strong {
+  color: #352b2f;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.unreadDot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #8b4b5a;
+}
+
+.itemMessage {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #7c7075;
+  font-size: 11px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.itemDate {
+  color: #a09196;
+  font-size: 10px;
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  padding: 28px 20px;
+  color: #85777c;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.state p {
+  margin: 0;
+}
+
+.state strong {
+  color: #403439;
+}
+
+.state button {
+  padding: 7px 12px;
+  border: 1px solid #ead6da;
+  border-radius: 7px;
+  background: #fff;
+  color: #8b4b5a;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.emptyIcon {
+  color: #8b4b5a;
+  font-size: 24px;
+}
+
+.footerButton {
+  flex-shrink: 0;
+  border-top: 1px solid #f1e9e9;
+}
+
+.dropdown button:focus-visible {
+  outline: 3px solid rgb(139 75 90 / 30%);
+  outline-offset: -3px;
+}
+
+@media (max-width: 480px) {
+  .dropdown {
+    position: fixed;
+    top: 78px;
+    right: 12px;
+    max-height: calc(100dvh - 96px);
+  }
+}
+
+
+
+
+/* Admin notification bell and unread count */
+.notificationWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+

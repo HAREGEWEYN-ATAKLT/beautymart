@@ -1,0 +1,184 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { prisma } from "../../../../lib/prisma";
+
+export async function POST(request: Request) {
+  try {
+    // 1. Check logged-in user
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      secureCookie: false,
+    });
+
+    if (!token?.id) {
+      return NextResponse.json(
+        { message: "You must be logged in." },
+        { status: 401 }
+      );
+    }
+
+    // 2. Get order ID from request
+    const body = await request.json();
+    const { orderId } = body;
+
+    if (!orderId) {
+      return NextResponse.json(
+        { message: "Order ID is required." },
+        { status: 400 }
+      );
+    }
+
+    // 3. Find the customer's profile
+    const customer = await prisma.customer.findUnique({
+      where: {
+        userId: String(token.id),
+      },
+    });
+
+    if (!customer) {
+      return NextResponse.json(
+        { message: "Customer profile not found." },
+        { status: 404 }
+      );
+    }
+
+    // 4. Find the order and make sure it belongs to this customer
+    const order = await prisma.order.findFirst({
+      where: {
+        orderId,
+        customerId: customer.customerId,
+      },
+      include: {
+        payments: true,
+      },
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        { message: "Order not found." },
+        { status: 404 }
+      );
+    }
+
+    // 5. Make sure the order has not already been paid
+    if (order.paymentStatus === "PAID") {
+      return NextResponse.json(
+        { message: "This order has already been paid." },
+        { status: 400 }
+      );
+    }
+
+    // 6. Find the payment record for this order
+    const payment = order.payments[0];
+
+    if (!payment) {
+      return NextResponse.json(
+        { message: "Payment record not found." },
+        { status: 404 }
+      );
+    }
+
+    // 7. Make sure this is a Chapa payment
+    if (payment.provider !== "CHAPA") {
+      return NextResponse.json(
+        { message: "This order is not using Chapa." },
+        { status: 400 }
+      );
+    }
+
+    // 8. Get Chapa secret key
+    const chapaSecretKey = process.env.CHAPA_SECRET_KEY;
+
+    if (!chapaSecretKey) {
+      return NextResponse.json(
+        { message: "Chapa secret key is not configured." },
+        { status: 500 }
+      );
+    }
+
+    // 9. Create a unique Chapa transaction reference
+    const txRef = `BM-${order.orderNumber}-${Date.now()}`;
+
+    // 10. Get customer information
+    const user = await prisma.user.findUnique({
+      where: {
+        userId: String(token.id),
+      },
+    });
+console.log("Chapa customer email:", user?.email);
+    if (!user) {
+      return NextResponse.json(
+
+        { message: "User not found." },
+        { status: 404 }
+      );
+    }
+
+    // 11. Initialize payment with Chapa
+    const chapaResponse = await fetch(
+      "https://api.chapa.co/v1/transaction/initialize",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${chapaSecretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: Number(order.finalAmount).toFixed(2),
+          currency: "ETB",
+          email: user.email,
+          first_name: user.name?.split(" ")[0] || "Customer",
+          last_name: user.name?.split(" ").slice(1).join(" ") || "Customer",
+          tx_ref: txRef,
+callback_url: process.env.CHAPA_CALLBACK_URL,
+return_url: process.env.CHAPA_RETURN_URL,
+          customization: {
+            title: "BeautyMart",
+            description: `Payment for order ${order.orderNumber}`,
+          },
+        }),
+      }
+    );
+
+    const chapaData = await chapaResponse.json();
+
+    console.log("Chapa initialize response:", chapaData);
+
+    if (!chapaResponse.ok || chapaData.status !== "success") {
+      return NextResponse.json(
+        {
+          message: "Unable to initialize Chapa payment.",
+          details: chapaData,
+        },
+        { status: 400 }
+      );
+    }
+
+    // 12. Save Chapa transaction reference
+    await prisma.payment.update({
+      where: {
+        paymentId: payment.paymentId,
+      },
+      data: {
+        transactionReference: txRef,
+      },
+    });
+
+    // 13. Return Chapa checkout URL
+    return NextResponse.json({
+      message: "Chapa payment initialized successfully.",
+      checkoutUrl: chapaData.data.checkout_url,
+      txRef,
+    });
+  } catch (error) {
+    console.error("Chapa payment error:", error);
+
+    return NextResponse.json(
+      {
+        message: "Something went wrong while initializing Chapa payment.",
+      },
+      { status: 500 }
+    );
+  }
+}
