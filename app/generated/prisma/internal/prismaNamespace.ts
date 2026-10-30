@@ -409,6 +409,8 @@ export const ModelName = {
   Customer: 'Customer',
   Address: 'Address',
   Order: 'Order',
+  CancellationRequest: 'CancellationRequest',
+  CheckoutAttempt: 'CheckoutAttempt',
   OrderItem: 'OrderItem',
   StorePayment: 'StorePayment',
   Payment: 'Payment',
@@ -430,7 +432,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "store" | "subscription" | "category" | "product" | "productImage" | "inventory" | "discount" | "productDiscount" | "customer" | "address" | "order" | "orderItem" | "storePayment" | "payment" | "notification" | "analytics" | "subscriptionPayment"
+    modelProps: "user" | "store" | "subscription" | "category" | "product" | "productImage" | "inventory" | "discount" | "productDiscount" | "customer" | "address" | "order" | "cancellationRequest" | "checkoutAttempt" | "orderItem" | "storePayment" | "payment" | "notification" | "analytics" | "subscriptionPayment"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1322,6 +1324,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CancellationRequest: {
+      payload: Prisma.$CancellationRequestPayload<ExtArgs>
+      fields: Prisma.CancellationRequestFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CancellationRequestFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CancellationRequestPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CancellationRequestFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CancellationRequestPayload>
+        }
+        findFirst: {
+          args: Prisma.CancellationRequestFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CancellationRequestPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CancellationRequestFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CancellationRequestPayload>
+        }
+        findMany: {
+          args: Prisma.CancellationRequestFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CancellationRequestPayload>[]
+        }
+        create: {
+          args: Prisma.CancellationRequestCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CancellationRequestPayload>
+        }
+        createMany: {
+          args: Prisma.CancellationRequestCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CancellationRequestCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CancellationRequestPayload>[]
+        }
+        delete: {
+          args: Prisma.CancellationRequestDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CancellationRequestPayload>
+        }
+        update: {
+          args: Prisma.CancellationRequestUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CancellationRequestPayload>
+        }
+        deleteMany: {
+          args: Prisma.CancellationRequestDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CancellationRequestUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CancellationRequestUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CancellationRequestPayload>[]
+        }
+        upsert: {
+          args: Prisma.CancellationRequestUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CancellationRequestPayload>
+        }
+        aggregate: {
+          args: Prisma.CancellationRequestAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCancellationRequest>
+        }
+        groupBy: {
+          args: Prisma.CancellationRequestGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CancellationRequestGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CancellationRequestCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CancellationRequestCountAggregateOutputType> | number
+        }
+      }
+    }
+    CheckoutAttempt: {
+      payload: Prisma.$CheckoutAttemptPayload<ExtArgs>
+      fields: Prisma.CheckoutAttemptFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CheckoutAttemptFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CheckoutAttemptPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CheckoutAttemptFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CheckoutAttemptPayload>
+        }
+        findFirst: {
+          args: Prisma.CheckoutAttemptFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CheckoutAttemptPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CheckoutAttemptFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CheckoutAttemptPayload>
+        }
+        findMany: {
+          args: Prisma.CheckoutAttemptFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CheckoutAttemptPayload>[]
+        }
+        create: {
+          args: Prisma.CheckoutAttemptCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CheckoutAttemptPayload>
+        }
+        createMany: {
+          args: Prisma.CheckoutAttemptCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CheckoutAttemptCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CheckoutAttemptPayload>[]
+        }
+        delete: {
+          args: Prisma.CheckoutAttemptDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CheckoutAttemptPayload>
+        }
+        update: {
+          args: Prisma.CheckoutAttemptUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CheckoutAttemptPayload>
+        }
+        deleteMany: {
+          args: Prisma.CheckoutAttemptDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CheckoutAttemptUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CheckoutAttemptUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CheckoutAttemptPayload>[]
+        }
+        upsert: {
+          args: Prisma.CheckoutAttemptUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CheckoutAttemptPayload>
+        }
+        aggregate: {
+          args: Prisma.CheckoutAttemptAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCheckoutAttempt>
+        }
+        groupBy: {
+          args: Prisma.CheckoutAttemptGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CheckoutAttemptGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CheckoutAttemptCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CheckoutAttemptCountAggregateOutputType> | number
+        }
+      }
+    }
     OrderItem: {
       payload: Prisma.$OrderItemPayload<ExtArgs>
       fields: Prisma.OrderItemFieldRefs
@@ -1962,10 +2112,39 @@ export const OrderScalarFieldEnum = {
   finalAmount: 'finalAmount',
   paymentStatus: 'paymentStatus',
   orderStatus: 'orderStatus',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  checkoutAttemptId: 'checkoutAttemptId'
 } as const
 
 export type OrderScalarFieldEnum = (typeof OrderScalarFieldEnum)[keyof typeof OrderScalarFieldEnum]
+
+
+export const CancellationRequestScalarFieldEnum = {
+  cancellationRequestId: 'cancellationRequestId',
+  orderId: 'orderId',
+  customerId: 'customerId',
+  status: 'status',
+  reason: 'reason',
+  requestedAt: 'requestedAt',
+  reviewedAt: 'reviewedAt',
+  reviewedByUserId: 'reviewedByUserId',
+  reviewNote: 'reviewNote',
+  inventoryRestoredAt: 'inventoryRestoredAt'
+} as const
+
+export type CancellationRequestScalarFieldEnum = (typeof CancellationRequestScalarFieldEnum)[keyof typeof CancellationRequestScalarFieldEnum]
+
+
+export const CheckoutAttemptScalarFieldEnum = {
+  checkoutAttemptId: 'checkoutAttemptId',
+  customerId: 'customerId',
+  idempotencyKey: 'idempotencyKey',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CheckoutAttemptScalarFieldEnum = (typeof CheckoutAttemptScalarFieldEnum)[keyof typeof CheckoutAttemptScalarFieldEnum]
 
 
 export const OrderItemScalarFieldEnum = {
@@ -2247,6 +2426,34 @@ export type ListEnumOrderStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$
 
 
 /**
+ * Reference to a field of type 'CancellationRequestStatus'
+ */
+export type EnumCancellationRequestStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CancellationRequestStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'CancellationRequestStatus[]'
+ */
+export type ListEnumCancellationRequestStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CancellationRequestStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'CheckoutAttemptStatus'
+ */
+export type EnumCheckoutAttemptStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CheckoutAttemptStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'CheckoutAttemptStatus[]'
+ */
+export type ListEnumCheckoutAttemptStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CheckoutAttemptStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'PaymentProvider'
  */
 export type EnumPaymentProviderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentProvider'>
@@ -2450,6 +2657,8 @@ export type GlobalOmitConfig = {
   customer?: Prisma.CustomerOmit
   address?: Prisma.AddressOmit
   order?: Prisma.OrderOmit
+  cancellationRequest?: Prisma.CancellationRequestOmit
+  checkoutAttempt?: Prisma.CheckoutAttemptOmit
   orderItem?: Prisma.OrderItemOmit
   storePayment?: Prisma.StorePaymentOmit
   payment?: Prisma.PaymentOmit

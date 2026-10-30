@@ -1,8 +1,9 @@
 
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../lib/prisma";
+import { getActiveRequestUser } from "../../../lib/request-auth";
+import { getStoreManagementBlockReason } from "../../../lib/store-management-access";
 
 async function checkStoreSubscription(
   storeId: string,
@@ -25,39 +26,8 @@ async function checkStoreSubscription(
     );
   }
 
-  const subscription = store.subscription;
-
-  if (!subscription) {
-    return NextResponse.json(
-      { message: "This store has no subscription. Contact the administrator." },
-      { status: 403 }
-    );
-  }
-
-  if (subscription.status === "SUSPENDED") {
-    return NextResponse.json(
-      { message: "This store's subscription is suspended. Contact the administrator to restore access." },
-      { status: 403 }
-    );
-  }
-
-  if (subscription.status === "CANCELLED") {
-    return NextResponse.json(
-      { message: "This store's subscription is cancelled. Restore or renew it before managing products." },
-      { status: 403 }
-    );
-  }
-
-  if (
-    subscription.status === "EXPIRED" ||
-    subscription.endDate <= new Date() ||
-    !subscription.isActive
-  ) {
-    return NextResponse.json(
-      { message: "This store's subscription has expired or is inactive. Renew or reactivate it before managing products." },
-      { status: 403 }
-    );
-  }
+  const reason = getStoreManagementBlockReason(store);
+  if (reason) return NextResponse.json({ message: reason }, { status: 403 });
 
   return null;
 }
@@ -71,20 +41,16 @@ async function checkStoreSubscription(
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
       );
     }
 
-    if (token.role !== "STORE_OWNER") {
+    if (user.role !== "STORE_OWNER") {
       return NextResponse.json(
         { message: "Only Store Owners can manage products." },
         { status: 403 }
@@ -109,7 +75,7 @@ export async function GET(request: NextRequest) {
     const store = await prisma.store.findFirst({
       where: {
         storeId,
-        ownerId: String(token.id),
+        ownerId: user.userId,
       },
     });
 
@@ -161,13 +127,9 @@ export async function POST(request: NextRequest) {
     // 1. Get logged-in user
     // ------------------------------------------------------------
 
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
@@ -178,7 +140,7 @@ export async function POST(request: NextRequest) {
     // 2. Only Store Owners can create products
     // ------------------------------------------------------------
 
-    if (token.role !== "STORE_OWNER") {
+    if (user.role !== "STORE_OWNER") {
       return NextResponse.json(
         {
           message: "Only Store Owners can create products.",
@@ -291,7 +253,7 @@ export async function POST(request: NextRequest) {
     const store = await prisma.store.findFirst({
       where: {
         storeId: String(storeId),
-        ownerId: String(token.id),
+        ownerId: user.userId,
       },
     });
 
@@ -306,7 +268,7 @@ export async function POST(request: NextRequest) {
     }
 const subscriptionError = await checkStoreSubscription(
   store.storeId,
-  String(token.id)
+  user.userId
 );
 
 if (subscriptionError) {
@@ -422,13 +384,9 @@ export async function PUT(request: NextRequest) {
     // 1. Get logged-in user
     // ------------------------------------------------------------
 
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
@@ -439,7 +397,7 @@ export async function PUT(request: NextRequest) {
     // 2. Only Store Owners can edit products
     // ------------------------------------------------------------
 
-    if (token.role !== "STORE_OWNER") {
+    if (user.role !== "STORE_OWNER") {
       return NextResponse.json(
         {
           message: "Only Store Owners can edit products.",
@@ -461,6 +419,7 @@ export async function PUT(request: NextRequest) {
       description,
       price,
       quantity,
+      inventoryUpdatedAt,
     } = body;
 
     // ------------------------------------------------------------
@@ -564,7 +523,7 @@ export async function PUT(request: NextRequest) {
     // 10. IMPORTANT: Verify ownership
     // ------------------------------------------------------------
 
-    if (existingProduct.store.ownerId !== String(token.id)) {
+    if (existingProduct.store.ownerId !== user.userId) {
       return NextResponse.json(
         {
           message:
@@ -575,7 +534,7 @@ export async function PUT(request: NextRequest) {
     }
 const subscriptionError = await checkStoreSubscription(
   existingProduct.storeId,
-  String(token.id)
+  user.userId
 );
 
 if (subscriptionError) {
@@ -636,15 +595,16 @@ if (subscriptionError) {
       // ----------------------------------------------------------
 
       if (existingProduct.inventory) {
-        await tx.inventory.update({
-          where: {
-            productId: existingProduct.productId,
-          },
-
+        if (typeof inventoryUpdatedAt !== "string" || Number.isNaN(new Date(inventoryUpdatedAt).getTime())) {
+          throw new Error("INVENTORY_VERSION_REQUIRED");
+        }
+        const inventoryUpdate = await tx.inventory.updateMany({
+          where: { productId: existingProduct.productId, updatedAt: new Date(inventoryUpdatedAt) },
           data: {
             quantity: productQuantity,
           },
         });
+        if (inventoryUpdate.count !== 1) throw new Error("INVENTORY_CHANGED");
       } else {
         // Safety fallback:
         // If somehow the product has no inventory record,
@@ -684,6 +644,12 @@ if (subscriptionError) {
       { status: 200 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === "INVENTORY_CHANGED") {
+      return NextResponse.json({ message: "Stock changed while you were editing. Refresh the product and enter the quantity again." }, { status: 409 });
+    }
+    if (error instanceof Error && error.message === "INVENTORY_VERSION_REQUIRED") {
+      return NextResponse.json({ message: "Reload the product before saving stock changes." }, { status: 409 });
+    }
     console.error("Product update error:", error);
 
     return NextResponse.json(
@@ -698,20 +664,16 @@ if (subscriptionError) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
       );
     }
 
-    if (token.role !== "STORE_OWNER") {
+    if (user.role !== "STORE_OWNER") {
       return NextResponse.json(
         {
           message: "Only Store Owners can delete products.",
@@ -736,6 +698,7 @@ export async function DELETE(request: NextRequest) {
       },
       include: {
         store: true,
+        _count: { select: { orderItems: true } },
       },
     });
 
@@ -746,7 +709,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (product.store.ownerId !== String(token.id)) {
+    if (product.store.ownerId !== user.userId) {
       return NextResponse.json(
         {
           message:
@@ -757,17 +720,18 @@ export async function DELETE(request: NextRequest) {
     }
 const subscriptionError = await checkStoreSubscription(
   product.storeId,
-  String(token.id)
+  user.userId
 );
 
 if (subscriptionError) {
   return subscriptionError;
 }
-    await prisma.product.delete({
-      where: {
-        productId: product.productId,
-      },
-    });
+    if (product._count.orderItems > 0) {
+      await prisma.product.update({ where: { productId: product.productId }, data: { isActive: false } });
+      return NextResponse.json({ message: "Product removed from sale and preserved for order history.", deactivated: true }, { status: 200 });
+    }
+
+    await prisma.product.delete({ where: { productId: product.productId } });
 
     return NextResponse.json(
       {
@@ -789,20 +753,16 @@ if (subscriptionError) {
 }
 export async function PATCH(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
       );
     }
 
-    if (token.role !== "STORE_OWNER") {
+    if (user.role !== "STORE_OWNER") {
       return NextResponse.json(
         {
           message:
@@ -846,7 +806,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    if (product.store.ownerId !== String(token.id)) {
+    if (product.store.ownerId !== user.userId) {
       return NextResponse.json(
         {
           message:
@@ -857,7 +817,7 @@ export async function PATCH(request: NextRequest) {
     }
 const subscriptionError = await checkStoreSubscription(
   product.storeId,
-  String(token.id)
+  user.userId
 );
 
 if (subscriptionError) {

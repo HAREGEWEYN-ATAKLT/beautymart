@@ -120,6 +120,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import HorizontalCarousel from "./HorizontalCarousel";
 
 type MarketplaceProduct = {
   productId: string;
@@ -157,7 +158,7 @@ export default function TrendingProducts() {
         }
 
         const data = await response.json();
-        setProducts(Array.isArray(data.products) ? data.products.slice(0, 4) : []);
+        setProducts(Array.isArray(data.products) ? data.products.slice(0, 12) : []);
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           return;
@@ -204,7 +205,7 @@ export default function TrendingProducts() {
             New beauty products are coming soon. Please check back later.
           </p>
         ) : (
-          <div className="products-grid">
+          <HorizontalCarousel className="products-grid" label="trending products">
             {products.map((product) => {
               const image =
                 product.images?.find((item) => item.isPrimary)?.imageUrl ||
@@ -265,7 +266,7 @@ export default function TrendingProducts() {
                 </Link>
               );
             })}
-          </div>
+          </HorizontalCarousel>
         )}
       </div>
     </section>

@@ -58,6 +58,12 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum CancellationRequestStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+}
+
 enum PaymentProvider {
   TELEBIRR
   CHAPA
@@ -71,6 +77,12 @@ enum NotificationType {
   INVENTORY
   SUBSCRIPTION
   SYSTEM
+}
+
+enum CheckoutAttemptStatus {
+  OPEN
+  COMPLETED
+  CANCELLED
 }
 
 // =========================
@@ -281,6 +293,8 @@ model Customer {
   user        User      @relation(fields: [userId], references: [userId])
   addresses   Address[]
   orders      Order[]
+  checkoutAttempts CheckoutAttempt[]
+  cancellationRequests CancellationRequest[]
 
   @@map("Customers")
 }
@@ -322,17 +336,57 @@ model Order {
   paymentStatus  PaymentStatus @default(PENDING) @map("PaymentStatus")
   orderStatus    OrderStatus   @default(PENDING) @map("OrderStatus")
   createdAt      DateTime      @default(now()) @map("CreatedAt")
+  checkoutAttemptId String?    @map("CheckoutAttemptId")
 
   store    Store       @relation(fields: [storeId], references: [storeId], onDelete: Restrict)
   customer Customer    @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
   address  Address     @relation(fields: [addressId], references: [addressId], onDelete: Restrict)
   items    OrderItem[]
   payments Payment[]
+  checkoutAttempt CheckoutAttempt? @relation(fields: [checkoutAttemptId], references: [checkoutAttemptId], onDelete: SetNull)
+  cancellationRequest CancellationRequest?
 
   @@index([storeId])
   @@index([customerId])
   @@index([addressId])
+  @@index([checkoutAttemptId])
   @@map("Orders")
+}
+
+model CancellationRequest {
+  cancellationRequestId String                    @id @default(uuid()) @map("CancellationRequestId")
+  orderId               String                    @unique @map("OrderId")
+  customerId            String                    @map("CustomerId")
+  status                CancellationRequestStatus @default(REQUESTED) @map("Status")
+  reason                String?                   @map("Reason") @db.Text
+  requestedAt           DateTime                  @default(now()) @map("RequestedAt")
+  reviewedAt            DateTime?                 @map("ReviewedAt")
+  reviewedByUserId      String?                   @map("ReviewedByUserId")
+  reviewNote            String?                   @map("ReviewNote") @db.Text
+  inventoryRestoredAt   DateTime?                 @map("InventoryRestoredAt")
+
+  order    Order    @relation(fields: [orderId], references: [orderId], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
+
+  @@index([customerId])
+  @@index([status])
+  @@map("CancellationRequests")
+}
+
+model CheckoutAttempt {
+  checkoutAttemptId String                @id @default(uuid()) @map("CheckoutAttemptId")
+  customerId        String                @map("CustomerId")
+  idempotencyKey    String                @map("IdempotencyKey")
+  status            CheckoutAttemptStatus @default(OPEN) @map("Status")
+  createdAt         DateTime              @default(now()) @map("CreatedAt")
+  updatedAt         DateTime              @updatedAt @map("UpdatedAt")
+
+  customer Customer @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
+  orders   Order[]
+
+  @@unique([customerId, idempotencyKey])
+  @@index([customerId])
+  @@map("CheckoutAttempts")
 }
 
 // =========================

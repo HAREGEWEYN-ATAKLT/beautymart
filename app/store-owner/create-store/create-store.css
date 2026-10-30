@@ -219,6 +219,30 @@
   line-height: 1.5;
 }
 
+.create-branding-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.create-image-upload {
+  display: grid;
+  gap: 10px;
+  min-height: 160px;
+  padding: 20px;
+  border: 1px dashed #cdaeb7;
+  border-radius: 14px;
+  background: #fffafa;
+  color: #7d4050;
+  cursor: pointer;
+}
+
+.create-image-upload:hover { background: #fff5f6; border-color: #9b5363; }
+.create-image-upload > span { font-size: 13px; font-weight: 800; }
+.create-image-upload strong { color: #403839; font-size: 15px; overflow-wrap: anywhere; }
+.create-image-upload input { max-width: 100%; color: #655e5b; font: inherit; font-size: 12px; }
+.create-image-upload small { color: #817b79; font-size: 12px; font-weight: 400; line-height: 1.5; }
+
 /* ---------- MESSAGES ---------- */
 
 .form-success {
@@ -408,6 +432,8 @@
   .create-store-info {
     grid-template-columns: 1fr;
   }
+
+  .create-branding-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 450px) {

@@ -1,6 +1,7 @@
 
 import Navbar from "@/app/components/Navbar";
 import Hero from "@/app/components/Hero";
+import SaleProducts from "@/app/components/SaleProducts";
 import Categories from "@/app/components/Categories";
 import FeaturedStores from "@/app/components/FeaturedStores";
 import TrendingProducts from "@/app/components/TrendingProducts";
@@ -14,6 +15,7 @@ export default function Home() {
     <main>
       <Navbar />
       <Hero />
+      <SaleProducts />
        <Categories />
         <FeaturedStores />
         <TrendingProducts />

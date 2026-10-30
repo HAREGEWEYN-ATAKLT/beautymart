@@ -77,6 +77,15 @@ export const OrderStatus = {
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
 
 
+export const CancellationRequestStatus = {
+  REQUESTED: 'REQUESTED',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+} as const
+
+export type CancellationRequestStatus = (typeof CancellationRequestStatus)[keyof typeof CancellationRequestStatus]
+
+
 export const PaymentProvider = {
   TELEBIRR: 'TELEBIRR',
   CHAPA: 'CHAPA',
@@ -96,3 +105,12 @@ export const NotificationType = {
 } as const
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
+
+
+export const CheckoutAttemptStatus = {
+  OPEN: 'OPEN',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type CheckoutAttemptStatus = (typeof CheckoutAttemptStatus)[keyof typeof CheckoutAttemptStatus]

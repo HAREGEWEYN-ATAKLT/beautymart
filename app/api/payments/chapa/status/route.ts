@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../../../lib/prisma";
+import { completeCheckoutAttemptIfPaid } from "../../../../../lib/checkout";
+import { getActiveRequestUser } from "../../../../../lib/request-auth";
+import { isRejectedLegacyChapaReference } from "../../../../../lib/payment-recovery";
+import { isFinalUnsuccessfulChapaStatus } from "../../../../../lib/chapa-status";
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user || user.role !== "CUSTOMER") {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
@@ -29,7 +28,7 @@ export async function GET(request: NextRequest) {
     }
 
     const customer = await prisma.customer.findUnique({
-      where: { userId: String(token.id) },
+      where: { userId: user.userId },
       select: { customerId: true },
     });
 
@@ -66,6 +65,9 @@ export async function GET(request: NextRequest) {
 
     
     if (payment.status === "PAID") {
+      if (payment.order.checkoutAttemptId) {
+        await completeCheckoutAttemptIfPaid(payment.order.checkoutAttemptId);
+      }
       return NextResponse.json({
         status: "PAID",
         message: "This payment has already been confirmed.",
@@ -110,16 +112,47 @@ if (!txRef) {
     const result = await response.json().catch(() => null);
 
     if (!response.ok || result?.status !== "success" || !result?.data) {
-      console.error("Chapa status verification inconclusive:", {
+      // A legacy BeautyMart version stored references that Chapa rejects for
+      // being too long. A 400 for that exact condition proves this reference
+      // was never a usable Chapa attempt, so it can be released for a retry.
+      // Do not apply this recovery rule to a normal 404 or network problem:
+      // Chapa documents those as potentially unpaid/unknown states.
+      if (isRejectedLegacyChapaReference(txRef, response.status)) {
+        const released = await prisma.payment.updateMany({
+          where: {
+            paymentId: payment.paymentId,
+            provider: "CHAPA",
+            status: "PENDING",
+            transactionReference: txRef,
+          },
+          data: { transactionReference: null },
+        });
+
+        if (released.count === 1) {
+          return NextResponse.json({
+            status: "FAILED",
+            retryable: true,
+            message: "This older payment attempt used a Chapa reference that was rejected before payment started. No payment was verified; you can safely retry using this order.",
+          });
+        }
+
+        return NextResponse.json(
+          { message: "Payment status changed while it was being checked. Please check again." },
+          { status: 409 }
+        );
+      }
+
+      console.error("Chapa status verification was inconclusive.", {
         httpStatus: response.status,
-        txRef,
       });
 
       return NextResponse.json(
         {
           status: "UNKNOWN",
           message:
-            "Chapa could not confirm the current status. Please try checking again.",
+            response.status === 400
+              ? "Chapa rejected this verification request. This does not prove payment failed, so do not retry yet. Check the Chapa dashboard or contact support to reconcile it."
+              : "Chapa could not confirm the current status. Please try checking again.",
         },
         { status: 202 }
       );
@@ -133,13 +166,7 @@ if (!txRef) {
       !Number.isFinite(Number(transaction.amount)) ||
       Math.abs(Number(transaction.amount) - Number(payment.amount)) > 0.001
     ) {
-      console.error("Chapa verification details mismatch:", {
-        txRef,
-        returnedReference: transaction.tx_ref,
-        returnedCurrency: transaction.currency,
-        returnedAmount: transaction.amount,
-        expectedAmount: Number(payment.amount),
-      });
+  console.error("Chapa verification details did not match the saved payment.");
 
       return NextResponse.json(
         { message: "Verified transaction details do not match this payment." },
@@ -185,6 +212,10 @@ if (!txRef) {
         );
       }
 
+      if (payment.order.checkoutAttemptId) {
+        await completeCheckoutAttemptIfPaid(payment.order.checkoutAttemptId);
+      }
+
 
 
       // Notify the store owner and active super admins.
@@ -201,7 +232,9 @@ if (!txRef) {
           prisma.order.findUnique({
             where: { orderId: payment.orderId },
             select: {
+              orderId: true,
               orderNumber: true,
+              customer: { select: { userId: true } },
             },
           }),
           prisma.user.findMany({
@@ -224,6 +257,13 @@ if (!txRef) {
               notificationType: "PAYMENT" as const,
               deduplicationKey: `store-order-payment:${payment.paymentId}:${store.ownerId}`,
             },
+            {
+              userId: order.customer.userId,
+              title: "Payment verified",
+              message: `Your payment for order ${order.orderNumber} at ${store.storeName} has been verified successfully.`,
+              notificationType: "PAYMENT" as const,
+              deduplicationKey: `customer-order-payment:${payment.paymentId}:${order.orderId}:${order.customer.userId}`,
+            },
             ...admins.map((admin) => ({
               userId: admin.userId,
               title: "Marketplace payment received",
@@ -238,11 +278,8 @@ if (!txRef) {
             skipDuplicates: true,
           });
         }
-      } catch (notificationError) {
-        console.error(
-          "Payment was confirmed, but payment notifications failed:",
-          notificationError
-        );
+    } catch {
+      console.error("Payment was confirmed, but payment notifications failed.");
       }
 
 return NextResponse.json({
@@ -254,7 +291,7 @@ return NextResponse.json({
 
     }
 
-    if (transaction.status === "failed") {
+    if (isFinalUnsuccessfulChapaStatus(transaction.status)) {
       // Release the reference only after Chapa confirms this attempt failed.
       // Keep the payment PENDING so the customer can safely start a new attempt.
       const released = await prisma.payment.updateMany({
@@ -273,6 +310,20 @@ return NextResponse.json({
         );
       }
 
+      // This is a final result from Chapa for this attempt. It is safe to
+      // tell the customer to retry, but the order and reserved stock stay
+      // unchanged until a later payment is verified.
+      await prisma.notification.createMany({
+        data: [{
+          userId: user.userId,
+          title: "Payment attempt was unsuccessful",
+          message: `Chapa confirmed that the payment attempt for order ${payment.order.orderNumber} did not succeed. No payment was verified; you can try payment again from your order.`,
+          notificationType: "PAYMENT",
+          deduplicationKey: `customer-payment-attempt-failed:${payment.paymentId}:${txRef}`,
+        }],
+        skipDuplicates: true,
+      }).catch(() => undefined);
+
       return NextResponse.json({
         status: "FAILED",
         retryable: true,
@@ -287,8 +338,8 @@ return NextResponse.json({
       },
       { status: 202 }
     );
-  } catch (error) {
-    console.error("Chapa payment status error:", error);
+  } catch {
+    console.error("Chapa payment status check failed.");
 
     return NextResponse.json(
       { message: "Unable to check payment status right now." },

@@ -110,6 +110,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import HorizontalCarousel from "./HorizontalCarousel";
 
 type MarketplaceProduct = {
   productId: string;
@@ -178,7 +179,7 @@ export default function Categories() {
           categoryMap.set(name, { name, image });
         }
 
-        setCategories(Array.from(categoryMap.values()).slice(0, 8));
+        setCategories(Array.from(categoryMap.values()));
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           return;
@@ -227,7 +228,7 @@ export default function Categories() {
             become available.
           </p>
         ) : (
-          <div className="categories-grid">
+          <HorizontalCarousel className="categories-grid" label="beauty categories">
             {categories.map((category) => (
               <Link
                 href={`/products?category=${encodeURIComponent(category.name)}`}
@@ -272,7 +273,7 @@ export default function Categories() {
                 </div>
               </Link>
             ))}
-          </div>
+          </HorizontalCarousel>
         )}
       </div>
     </section>

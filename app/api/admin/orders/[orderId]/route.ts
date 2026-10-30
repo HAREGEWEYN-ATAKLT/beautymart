@@ -1,21 +1,24 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../../auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getActiveRequestUser } from "../../../../../lib/request-auth";
 import { prisma } from "../../../../../lib/prisma";
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     // Check admin session
-    const session = await getServerSession(authOptions);
+    const user = await getActiveRequestUser(request);
 
-    if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    if (!user) {
       return NextResponse.json(
         { message: "Unauthorized" },
         { status: 401 }
       );
+    }
+
+    if (user.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
     // Get order ID from URL

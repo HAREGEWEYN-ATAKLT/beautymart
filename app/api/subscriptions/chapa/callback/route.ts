@@ -275,6 +275,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
+import { activateVerifiedSubscriptionPayment } from "../../../../../lib/subscription-activation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -479,7 +480,11 @@ if (
   return redirectToSubscription("pending");
 }
 
-const activated = await prisma.$transaction<
+const activated = await activateVerifiedSubscriptionPayment(
+  payment.subscriptionPaymentId,
+  txRef,
+);
+/* const activated = await prisma.$transaction<
   { activated: false } | { activated: true; endDate: Date }
 >(async (tx) => {
       // Claim the pending payment exactly once. Concurrent callbacks
@@ -570,7 +575,7 @@ if (subscription.storeId !== payment.storeId) {
         activated: true,
         endDate,
       };
-    });
+    }); */
 
   if (activated.activated) {
     

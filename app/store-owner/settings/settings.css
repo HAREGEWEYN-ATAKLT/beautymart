@@ -102,6 +102,23 @@
   margin-top: 25px;
 }
 
+.settings-message, .settings-error { margin: 0; padding: 12px 14px; border-radius: 9px; font-weight: 600; }
+.settings-message { color: #1f6b35; background: #edf7ef; border: 1px solid #bce0c5; }
+.settings-error { color: #9b2319; background: #fff0ee; border: 1px solid #f0b8b2; }
+.settings-images { padding: 22px; border: 1px solid #eee1db; border-radius: 12px; background: #fcfaf8; }
+.settings-images h3 { margin: 0; color: #292222; font-size: 18px; }
+.settings-images > div > p { margin: 6px 0 20px; color: #746c68; font-size: 14px; }
+.settings-image-grid { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(0, 1.7fr); gap: 18px; }
+.settings-image-upload { display: grid; gap: 9px; color: #3c3431; font-size: 14px; font-weight: 700; }
+.settings-file-input { max-width: 100%; color: #645956; font: inherit; font-size: 12px; font-weight: 500; }
+.settings-file-input::file-selector-button { margin-right: 10px; border: 0; border-radius: 7px; padding: 8px 10px; background: #8b4b5a; color: #fff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.settings-file-input::file-selector-button:hover { background: #713b49; }
+.settings-image-upload small { color: #746c68; font-size: 12px; font-weight: 400; }
+.settings-logo-preview, .settings-banner-preview { position: relative; overflow: hidden; background: #eadde0; color: #8b4b5a; }
+.settings-logo-preview { width: 104px; height: 104px; border-radius: 50%; display: grid; place-items: center; font-size: 34px; }
+.settings-banner-preview { height: 136px; border-radius: 10px; display: grid; place-items: center; }
+.settings-logo-preview img, .settings-banner-preview img { object-fit: cover; }
+
 .settings-field {
   display: grid;
   gap: 7px;
@@ -207,6 +224,8 @@
   .settings-two-column {
     grid-template-columns: 1fr;
   }
+
+  .settings-image-grid { grid-template-columns: 1fr; }
 
   .settings-actions {
     flex-direction: column-reverse;

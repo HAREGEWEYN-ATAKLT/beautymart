@@ -535,10 +535,6 @@ export type PaymentUncheckedUpdateManyWithoutOrderNestedInput = {
   deleteMany?: Prisma.PaymentScalarWhereInput | Prisma.PaymentScalarWhereInput[]
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type PaymentCreateWithoutStoreInput = {
   paymentId?: string
   provider: $Enums.PaymentProvider

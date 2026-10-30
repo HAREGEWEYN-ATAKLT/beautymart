@@ -114,6 +114,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "../../lib/prisma";
+import HorizontalCarousel from "./HorizontalCarousel";
 
 export const dynamic = "force-dynamic";
 
@@ -142,7 +143,7 @@ export default async function FeaturedStores() {
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 3,
+    take: 12,
   });
 
   return (
@@ -174,7 +175,7 @@ export default async function FeaturedStores() {
             <Link href="/products">Explore products →</Link>
           </div>
         ) : (
-          <div className="stores-grid">
+          <HorizontalCarousel className="stores-grid" label="local beauty stores">
             {stores.map((store) => {
               const image = store.bannerUrl || store.logoUrl;
 
@@ -222,7 +223,7 @@ export default async function FeaturedStores() {
                 </Link>
               );
             })}
-          </div>
+          </HorizontalCarousel>
         )}
       </div>
     </section>

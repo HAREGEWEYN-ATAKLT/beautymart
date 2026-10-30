@@ -1,26 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../../../lib/prisma";
+import { getActiveRequestUser } from "../../../../../lib/request-auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
       );
     }
 
-    if (token.role !== "STORE_OWNER") {
+    if (user.role !== "STORE_OWNER") {
       return NextResponse.json(
         { message: "Only Store Owners can access orders." },
         { status: 403 }
@@ -40,10 +36,11 @@ export async function GET(
       where: {
         orderId,
         store: {
-          ownerId: String(token.id),
+          ownerId: user.userId,
         },
       },
       include: {
+        cancellationRequest: true,
         customer: {
           select: {
             fullName: true,

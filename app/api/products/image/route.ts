@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../../lib/prisma";
+import { getActiveRequestUser } from "../../../../lib/request-auth";
 import cloudinary  from "../../../../lib/cloudinary";
 import type { UploadApiResponse } from "cloudinary";
+import { validateProductImage } from "../../../../lib/product-image-validation";
+import { getStoreManagementBlockReason } from "../../../../lib/store-management-access";
 export async function POST(request: NextRequest) {
   try {
     // 1. Check login
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
@@ -20,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Check Store Owner role
-    if (token.role !== "STORE_OWNER") {
+    if (user.role !== "STORE_OWNER") {
       return NextResponse.json(
         {
           message: "Only Store Owners can upload product images.",
@@ -49,22 +47,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Check file type
-    if (!image.type.startsWith("image/")) {
-      return NextResponse.json(
-        { message: "Only image files are allowed." },
-        { status: 400 }
-      );
-    }
-
-    // 5. Check file size
-    if (image.size > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        { message: "Image must be smaller than 5MB." },
-        { status: 400 }
-      );
-    }
-
     // 6. Find product and verify ownership
     const product = await prisma.product.findUnique({
       where: {
@@ -82,7 +64,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (product.store.ownerId !== String(token.id)) {
+    if (product.store.ownerId !== user.userId) {
       return NextResponse.json(
         {
           message:
@@ -97,33 +79,27 @@ export async function POST(request: NextRequest) {
     const store = await prisma.store.findFirst({
       where: {
         storeId: product.storeId,
-        ownerId: String(token.id),
+        ownerId: user.userId,
       },
       include: {
         subscription: true,
       },
     });
 
-    const subscription = store?.subscription;
-    if (
-      !subscription ||
-      subscription.status !== "ACTIVE" ||
-      !subscription.isActive ||
-      subscription.endDate <= new Date()
-    ) {
+    const managementBlock = getStoreManagementBlockReason(store);
+    if (managementBlock) {
       return NextResponse.json(
-        {
-          message:
-            "This store's subscription is inactive, suspended, or expired. Renew or restore access before uploading product images.",
-        },
+        { message: managementBlock },
         { status: 403 }
       );
     }
 
 
 
-    // 7. Convert image to buffer
+    // Validate actual file bytes: browser-provided MIME type can be forged.
     const bytes = await image.arrayBuffer();
+    const imageError = validateProductImage(image, new Uint8Array(bytes));
+    if (imageError) return NextResponse.json({ message: imageError }, { status: 400 });
     const buffer = Buffer.from(bytes);
 
     // 8. Upload to Cloudinary

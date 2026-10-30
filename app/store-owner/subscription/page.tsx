@@ -524,7 +524,7 @@ disabled={
       subscription?.planType === "STANDARD"))
 }
 >
-  {startingPlan === "STARTER" ? "Connecting to Chapa..." : "Subscribe — 3,000 ETB"}
+  {startingPlan === "STARTER" ? "Connecting to Chapa..." : "Continue to Chapa — 3,000 ETB"}
 </button>
               </article>
 
@@ -558,14 +558,16 @@ disabled={
       subscription?.planType === "STANDARD"))
 }
 >
-  {startingPlan === "STANDARD" ? "Connecting to Chapa..." : "Subscribe — 5,000 ETB"}
+  {startingPlan === "STANDARD" ? "Connecting to Chapa..." : "Continue to Chapa — 5,000 ETB"}
 </button>
               </article>
             </div>
 
            <p className="subscription-payment-note">
-  Subscription payments are available to store owners only.
-  Your plan activates after Chapa confirms your payment.
+  Subscription payments are available to store owners only. Chapa shows only
+  the payment options enabled for BeautyMart, such as Telebirr or supported
+  bank methods. Your plan activates only after BeautyMart verifies payment
+  with Chapa.
 </p>
           </section>
         </>

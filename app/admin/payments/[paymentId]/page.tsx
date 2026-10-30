@@ -286,7 +286,7 @@ export default function AdminPaymentDetailPage() {
             <span className="admin-payment-detail-icon">⌂</span>
             <div>
               <h2>Store information</h2>
-              <p>Store receiving the customer's payment.</p>
+              <p>Store receiving the customer&apos;s payment.</p>
             </div>
           </div>
 

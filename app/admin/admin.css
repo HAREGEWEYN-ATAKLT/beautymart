@@ -565,6 +565,63 @@
   font-size: 11px;
 }
 
+.admin-action-message {
+  margin-bottom: 20px;
+  padding: 13px 16px;
+  border: 1px solid #cfe3d5;
+  border-radius: 8px;
+  background: #f4fbf6;
+  color: #2f6b45;
+  font-size: 12px;
+}
+
+.admin-subscription-payment-button {
+  display: grid;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-subscription-payment-button:hover strong,
+.admin-subscription-payment-button:focus-visible strong {
+  color: #7b4059;
+  text-decoration: underline;
+}
+
+.admin-subscription-payment-button small { color: #786e70; font-size: 11px; }
+
+.admin-payment-dialog-backdrop {
+  position: fixed; top: 0; right: 0; bottom: 0; left: 260px; z-index: 900;
+  display: grid; place-items: center; padding: 24px; background: rgba(39, 29, 33, .5);
+}
+.admin-payment-dialog {
+  width: min(620px, 100%); max-height: min(720px, calc(100vh - 48px)); overflow: auto;
+  padding: 24px; border-radius: 16px; background: #fff; box-shadow: 0 24px 72px rgba(39, 29, 33, .25);
+}
+.admin-payment-dialog-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.admin-payment-dialog-header p { margin: 0 0 5px; color: #8b4b68; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.admin-payment-dialog-header h2 { margin: 0; color: #30242a; font-size: 22px; }
+.admin-payment-dialog-header span { display: block; margin-top: 6px; color: #756a6e; font-size: 13px; }
+.admin-payment-dialog-header button { width: 36px; height: 36px; border: 1px solid #e6dcdf; border-radius: 50%; background: #fff; color: #5d4851; font-size: 24px; cursor: pointer; }
+.admin-payment-dialog-note { margin: 20px 0 14px; padding: 12px; border-left: 3px solid #8b4b68; background: #fbf5f7; color: #68575e; font-size: 13px; line-height: 1.5; }
+.admin-payment-dialog-list { display: grid; gap: 12px; }
+.admin-payment-dialog-list article { padding: 16px; border: 1px solid #ece2e5; border-radius: 12px; background: #fff; overflow-wrap: anywhere; }
+.admin-payment-dialog-list article > div { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.admin-payment-dialog-list article > div strong { color: #30242a; font-size: 14px; }
+.admin-payment-dialog-list dl { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 0; }
+.admin-payment-dialog-list dt { color: #8a7b81; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.admin-payment-dialog-list dd { margin: 4px 0 0; color: #42353a; font-size: 13px; }
+@media (max-width: 560px) {
+  .admin-payment-dialog-backdrop { left: 0; padding: 12px; }
+  .admin-payment-dialog { padding: 18px; border-radius: 12px; }
+  .admin-payment-dialog-list dl { grid-template-columns: 1fr; gap: 10px; }
+  .admin-payment-dialog-list article > div { align-items: flex-start; flex-direction: column; }
+}
+
 .admin-overview-grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr;

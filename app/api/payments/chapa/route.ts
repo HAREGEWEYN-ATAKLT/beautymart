@@ -2,23 +2,23 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../../lib/prisma";
+import { getActiveRequestUser } from "../../../../lib/request-auth";
+import { clientIp, enforceRateLimit, rateLimitResponse } from "../../../../lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const activeUser = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!activeUser || activeUser.role !== "CUSTOMER") {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
       );
     }
+
+    const limit = await enforceRateLimit("payment", `customer:${activeUser.userId}:ip:${clientIp(request)}`);
+    if (!limit.allowed) return rateLimitResponse(limit.reset ?? Date.now() + 60_000);
 
     const body = await request.json();
     const orderId = body?.orderId;
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     const customer = await prisma.customer.findUnique({
-      where: { userId: String(token.id) },
+      where: { userId: activeUser.userId },
     });
 
     if (!customer) {
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { userId: String(token.id) },
+      where: { userId: activeUser.userId },
     });
 
     if (!user) {
@@ -175,13 +175,16 @@ const txRef = `BM-${randomUUID()}`;
               description: `Payment for order ${order.orderNumber}`,
             },
           }),
-          signal: AbortSignal.timeout(15000),
+          // Chapa occasionally takes longer than 15 seconds to create a
+          // checkout page. A 30-second limit reduces false "unknown" states
+          // while still preserving the reference if the provider is slow.
+          signal: AbortSignal.timeout(30000),
         }
       );
-    } catch (error) {
+    } catch {
       // Chapa may have accepted the request even if we timed out.
       // Keep the reference so the attempt can be reconciled.
-      console.error("Chapa initialization outcome is unknown:", error);
+      console.error("Chapa initialization outcome is unknown.");
 
       return NextResponse.json(
         {
@@ -193,10 +196,14 @@ const txRef = `BM-${randomUUID()}`;
       );
     }
 
-    let chapaData: any;
+    let chapaData: {
+      status?: unknown;
+      data?: { checkout_url?: unknown };
+      message?: { tx_ref?: unknown };
+    };
 
     try {
-      chapaData = await chapaResponse.json();
+      chapaData = (await chapaResponse.json()) as typeof chapaData;
     } catch {
       return NextResponse.json(
         {
@@ -259,11 +266,9 @@ const txRef = `BM-${randomUUID()}`;
         );
       }
 
-      console.error("Chapa initialization response:", {
+      console.error("Chapa did not confirm payment initialization.", {
         httpStatus: chapaResponse.status,
-        status: chapaData?.status,
-        message: chapaData?.message,
-        txRef,
+        providerStatus: chapaData?.status,
       });
 
       // Keep the reference until we can establish whether Chapa
@@ -283,8 +288,8 @@ const txRef = `BM-${randomUUID()}`;
       checkoutUrl: chapaData.data.checkout_url,
       txRef,
     });
-  } catch (error) {
-    console.error("Chapa payment initialization error:", error);
+  } catch {
+    console.error("Chapa payment initialization failed.");
 
     return NextResponse.json(
       { message: "Unable to initialize payment at this time." },

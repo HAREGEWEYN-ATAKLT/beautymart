@@ -236,7 +236,7 @@ export default function SellPage() {
           </h2>
           <p>
             Every new store starts with a one-month trial. Choose a paid plan
-            when you're ready.
+            when you&apos;re ready.
           </p>
         </div>
 
@@ -288,7 +288,7 @@ export default function SellPage() {
         <p className={styles.pricingFootnote}>
           Subscription prices and durations are shown for store owners. The
           one-month trial is separate from paid plans. Purchasing a paid plan
-          starts its subscription period according to BeautyMart's subscription
+            starts its subscription period according to BeautyMart&apos;s subscription
           rules.
         </p>
         <p className={styles.pricingLink}>
@@ -302,7 +302,7 @@ export default function SellPage() {
           <h2>
             Questions?
             <br />
-            <em>We've got answers.</em>
+            <em>We&apos;ve got answers.</em>
           </h2>
           <p>Here are a few things to know before opening your store.</p>
           <Link href="/contact" className={styles.contactLink}>

@@ -1,16 +1,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../lib/prisma";
+import { getActiveRequestUser } from "../../../lib/request-auth";
+import { getStoreManagementBlockReason } from "../../../lib/store-management-access";
 
 async function getAuthenticatedStoreOwner(request: NextRequest) {
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-    secureCookie: false,
-  });
+  const user = await getActiveRequestUser(request);
 
-  if (!token?.id) {
+  if (!user) {
     return {
       error: NextResponse.json(
         { message: "You must be logged in." },
@@ -19,7 +16,7 @@ async function getAuthenticatedStoreOwner(request: NextRequest) {
     };
   }
 
-  if (token.role !== "STORE_OWNER") {
+  if (user.role !== "STORE_OWNER") {
     return {
       error: NextResponse.json(
         { message: "Only Store Owners can manage stores." },
@@ -28,26 +25,7 @@ async function getAuthenticatedStoreOwner(request: NextRequest) {
     };
   }
 
-  return { ownerId: String(token.id) };
-}
-
-function subscriptionRestrictionMessage(
-  status: string,
-  endDate: Date
-) {
-  if (status === "SUSPENDED") {
-    return "This store's subscription is suspended. Contact the administrator to restore access.";
-  }
-
-  if (status === "CANCELLED") {
-    return "This store's subscription is cancelled. Renew or restore the subscription before managing this store.";
-  }
-
-  if (status === "EXPIRED" || endDate <= new Date()) {
-    return "This store's subscription has expired. Renew or extend it before managing this store.";
-  }
-
-  return "This store does not have an active subscription.";
+  return { ownerId: user.userId };
 }
 
 /*
@@ -253,6 +231,8 @@ export async function GET(request: NextRequest) {
         storeId: true,
         storeName: true,
         description: true,
+        logoUrl: true,
+        bannerUrl: true,
         email: true,
         phone: true,
         address: true,
@@ -358,23 +338,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const subscription = existingStore.subscription;
-
-    if (
-      !subscription ||
-      subscription.status !== "ACTIVE" ||
-      !subscription.isActive ||
-      subscription.endDate <= new Date()
-    ) {
-      const message = subscription
-        ? subscriptionRestrictionMessage(
-            subscription.status,
-            subscription.endDate
-          )
-        : "This store has no subscription. Contact the administrator.";
-
-      return NextResponse.json({ message }, { status: 403 });
-    }
+    const managementBlock = getStoreManagementBlockReason(existingStore);
+    if (managementBlock) return NextResponse.json({ message: managementBlock }, { status: 403 });
 
     // Reject contact details already used by another store.
     const duplicateStoreContact = await prisma.store.findFirst({
@@ -395,27 +360,28 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Reject another user's registered contact details.
-    // The current owner's own account email and phone are allowed.
-    const duplicateUserContact = await prisma.user.findFirst({
-      where: {
-        userId: { not: ownerId },
-        OR: [
-          { email: { equals: email, mode: "insensitive" } },
-          { phoneNumber: phone },
-        ],
-      },
-      select: { userId: true },
-    });
+    // Only check contact values that are actually changing. Historical store
+    // data can legitimately match an older user account; that must not stop
+    // the owner from saving an unrelated change such as branding or address.
+    const changedContactChecks = [];
+    if (email.toLowerCase() !== (existingStore.email || "").toLowerCase()) {
+      changedContactChecks.push({ email: { equals: email, mode: "insensitive" as const } });
+    }
+    if (phone !== (existingStore.phone || "")) {
+      changedContactChecks.push({ phoneNumber: phone });
+    }
 
-    if (duplicateUserContact) {
-      return NextResponse.json(
-        {
-          message:
-            "This email or phone number is already registered to another user.",
-        },
-        { status: 409 }
-      );
+    if (changedContactChecks.length > 0) {
+      const duplicateUserContact = await prisma.user.findFirst({
+        where: { userId: { not: ownerId }, OR: changedContactChecks },
+        select: { userId: true },
+      });
+      if (duplicateUserContact) {
+        return NextResponse.json(
+          { message: "This email or phone number is already registered to another user." },
+          { status: 409 }
+        );
+      }
     }
 
     const updatedStore = await prisma.store.update({

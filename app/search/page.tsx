@@ -254,6 +254,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import HorizontalCarousel from "../components/HorizontalCarousel";
 import styles from "./search.module.css";
 
 type Product = {
@@ -560,7 +561,10 @@ export default function SearchPage() {
             </div>
           </div>
         ) : (
-          <div className={styles.productGrid}>
+          <HorizontalCarousel
+            className={styles.productGrid}
+            label={search.trim() ? "Search results" : "Marketplace products"}
+          >
             {results.map((product, index) => {
               const image =
                 product.images?.find((item) => item.isPrimary)?.imageUrl ||
@@ -616,7 +620,7 @@ export default function SearchPage() {
                 </article>
               );
             })}
-          </div>
+          </HorizontalCarousel>
         )}
 
         {!loading && !error && products.length > 0 && (

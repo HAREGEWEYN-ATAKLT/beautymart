@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import "./settings.css";
 
 type Store = {
@@ -12,6 +13,8 @@ type Store = {
   phone: string;
   address: string;
   status: string;
+  logoUrl: string | null;
+  bannerUrl: string | null;
 };
 
 export default function StoreSettingsPage() {
@@ -25,6 +28,27 @@ export default function StoreSettingsPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<"logo" | "banner" | null>(null);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const uploadStoreImage = async (imageType: "logo" | "banner", file: File | undefined) => {
+    if (!store || !file) return;
+    setUploading(imageType); setError(""); setMessage("");
+    try {
+      const formData = new FormData();
+      formData.set("storeId", store.storeId);
+      formData.set("imageType", imageType);
+      formData.set("image", file);
+      const response = await fetch("/api/stores/image", { method: "POST", body: formData });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Image could not be uploaded.");
+      setStore((current) => current ? { ...current, ...data.store } : current);
+      setMessage(data.message);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Image could not be uploaded.");
+    } finally { setUploading(null); }
+  };
 
   useEffect(() => {
     const loadStore = async () => {
@@ -82,6 +106,7 @@ export default function StoreSettingsPage() {
 
     try {
       setSaving(true);
+      setError(""); setMessage("");
 
       const response = await fetch("/api/stores", {
         method: "PUT",
@@ -101,16 +126,15 @@ export default function StoreSettingsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message || "Failed to update store.");
+        setError(data.message || "Failed to update store.");
         return;
       }
 
       setStore(data.store);
 
-      alert("Store settings updated successfully.");
-    } catch (error) {
-      console.error("Update store settings error:", error);
-      alert("Something went wrong while updating the store.");
+      setMessage("Store settings updated successfully.");
+    } catch {
+      setError("Something went wrong while updating the store.");
     } finally {
       setSaving(false);
     }
@@ -180,6 +204,34 @@ export default function StoreSettingsPage() {
             </div>
 
             <div className="settings-form">
+
+              {message ? <p className="settings-message" role="status">{message}</p> : null}
+              {error ? <p className="settings-error" role="alert">{error}</p> : null}
+
+              <section className="settings-images" aria-labelledby="store-images-heading">
+                <div>
+                  <h3 id="store-images-heading">Store branding</h3>
+                  <p>Add a logo and cover image customers see on your public store page.</p>
+                </div>
+                <div className="settings-image-grid">
+                  <label className="settings-image-upload">
+                    <span>Store logo</span>
+                    <div className="settings-logo-preview">
+                      {store.logoUrl ? <Image src={store.logoUrl} alt="Current store logo" fill sizes="120px" /> : <strong>{store.storeName.slice(0, 1).toUpperCase()}</strong>}
+                    </div>
+                    <input className="settings-file-input" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void uploadStoreImage("logo", event.target.files?.[0])} disabled={uploading !== null} />
+                    <small>{uploading === "logo" ? "Uploading logo..." : "JPEG, PNG, or WebP · maximum 5 MB"}</small>
+                  </label>
+                  <label className="settings-image-upload">
+                    <span>Store cover image</span>
+                    <div className="settings-banner-preview">
+                      {store.bannerUrl ? <Image src={store.bannerUrl} alt="Current store cover" fill sizes="420px" /> : <strong>Your store cover image</strong>}
+                    </div>
+                    <input className="settings-file-input" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void uploadStoreImage("banner", event.target.files?.[0])} disabled={uploading !== null} />
+                    <small>{uploading === "banner" ? "Uploading cover image..." : "Wide image recommended · JPEG, PNG, or WebP"}</small>
+                  </label>
+                </div>
+              </section>
 
               <div className="settings-field">
                 <label htmlFor="storeName">

@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../../lib/prisma";
+import { getActiveRequestUser } from "../../../../lib/request-auth";
 
 export async function GET(request: NextRequest) {
   try {
     // 1. Check logged-in user
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
@@ -19,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Only Store Owners can access this API
-    if (token.role !== "STORE_OWNER") {
+    if (user.role !== "STORE_OWNER") {
       return NextResponse.json(
         { message: "Only Store Owners can access orders." },
         { status: 403 }
@@ -29,7 +25,7 @@ export async function GET(request: NextRequest) {
     // 3. Find stores owned by the logged-in user
     const stores = await prisma.store.findMany({
       where: {
-        ownerId: String(token.id),
+        ownerId: user.userId,
       },
       select: {
         storeId: true,

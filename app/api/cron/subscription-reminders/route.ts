@@ -1,6 +1,8 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
+import { PrismaClient } from "../../../generated/prisma/client";
+import { handleSubscriptionReminderRequest } from "../../../../lib/subscription-reminder-handler";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,8 +34,19 @@ function dateKeyToUtcDay(dateKey: string): number {
   return Date.UTC(year, month - 1, day);
 }
 
-export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
+type SubscriptionReminderDependencies = {
+  db?: PrismaClient;
+  cronSecret?: string;
+};
+
+// Keeping the handler factory small makes it possible to test the real route
+// behavior with an isolated database, without pointing tests at development.
+function createSubscriptionReminderHandler({
+  db = prisma,
+  cronSecret = process.env.CRON_SECRET,
+}: SubscriptionReminderDependencies = {}) {
+  return async function GET(request: Request) {
+  const secret = cronSecret;
 
   if (!secret) {
     console.error("CRON_SECRET is not configured.");
@@ -53,11 +66,37 @@ export async function GET(request: Request) {
     const todayKey = ethiopianDateKey(now);
     const todayUtcDay = dateKeyToUtcDay(todayKey);
 
-    const subscriptions = await prisma.subscription.findMany({
+    // Expiry is a real state change, not only a notification. This keeps the
+    // database, admin screens, and store-management access rules consistent.
+    const expiredSubscriptions = await db.subscription.findMany({
       where: {
         status: "ACTIVE",
         isActive: true,
-        
+        endDate: { lt: now },
+      },
+      select: {
+        subscriptionId: true,
+        planType: true,
+        store: { select: { storeName: true, ownerId: true } },
+      },
+    });
+
+    if (expiredSubscriptions.length > 0) {
+      await db.subscription.updateMany({
+        where: {
+          subscriptionId: { in: expiredSubscriptions.map((item) => item.subscriptionId) },
+          status: "ACTIVE",
+          isActive: true,
+        },
+        data: { status: "EXPIRED", isActive: false },
+      });
+    }
+
+    const subscriptions = await db.subscription.findMany({
+      where: {
+        status: "ACTIVE",
+        isActive: true,
+        endDate: { gte: now },
         planType: { in: ["TRIAL", "STARTER", "STANDARD"] },
       },
       select: {
@@ -75,7 +114,7 @@ export async function GET(request: Request) {
 
     let notificationsCreated = 0;
 
-    const admins = await prisma.user.findMany({
+    const admins = await db.user.findMany({
       where: {
         role: "SUPER_ADMIN",
         isActive: true,
@@ -86,6 +125,29 @@ export async function GET(request: Request) {
     });
 
 
+    for (const subscription of expiredSubscriptions) {
+      const expiredResult = await db.notification.createMany({
+        data: [
+          {
+            userId: subscription.store.ownerId,
+            title: "Subscription expired",
+            message: `The subscription for ${subscription.store.storeName} has expired. Renew or choose a paid plan to restore store management.`,
+            notificationType: "SUBSCRIPTION",
+            deduplicationKey: `subscription-expired:${subscription.subscriptionId}:${subscription.store.ownerId}`,
+          },
+          ...admins.map((admin) => ({
+            userId: admin.userId,
+            title: "Store subscription expired",
+            message: `The ${subscription.planType} subscription for ${subscription.store.storeName} has expired.`,
+            notificationType: "SUBSCRIPTION" as const,
+            deduplicationKey: `admin-subscription-expired:${subscription.subscriptionId}:${admin.userId}`,
+          })),
+        ],
+        skipDuplicates: true,
+      });
+      notificationsCreated += expiredResult.count;
+    }
+
     for (const subscription of subscriptions) {
       const endDateKey = ethiopianDateKey(subscription.endDate);
 
@@ -94,34 +156,6 @@ export async function GET(request: Request) {
       );
 
       const reminderThreshold = REMINDER_DAYS[subscription.planType];
-
-      // Include the expiry date itself, but never remind for an expired date.
-     
-      // Notify the owner and Super Admins once when a subscription expires.
-      if (daysRemaining < 0) {
-        const expiredResult = await prisma.notification.createMany({
-          data: [
-            {
-              userId: subscription.store.ownerId,
-              title: "Subscription expired",
-              message: `The subscription for ${subscription.store.storeName} has expired. Renew or choose a paid plan to restore store management.`,
-              notificationType: "SUBSCRIPTION",
-              deduplicationKey: `subscription-expired:${subscription.subscriptionId}:${subscription.store.ownerId}`,
-            },
-            ...admins.map((admin) => ({
-              userId: admin.userId,
-              title: "Store subscription expired",
-              message: `The ${subscription.planType} subscription for ${subscription.store.storeName} has expired.`,
-              notificationType: "SUBSCRIPTION" as const,
-              deduplicationKey: `admin-subscription-expired:${subscription.subscriptionId}:${admin.userId}`,
-            })),
-          ],
-          skipDuplicates: true,
-        });
-
-        notificationsCreated += expiredResult.count;
-        continue;
-      }
 
       if (daysRemaining > reminderThreshold) {
         continue;
@@ -150,7 +184,7 @@ export async function GET(request: Request) {
           : "Renew before it expires to keep managing your store.";
 
     
-      const result = await prisma.notification.createMany({
+      const result = await db.notification.createMany({
         data: [
           {
             userId: subscription.store.ownerId,
@@ -194,4 +228,9 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+  };
+}
+
+export async function GET(request: Request) {
+  return handleSubscriptionReminderRequest(request, prisma, process.env.CRON_SECRET);
 }

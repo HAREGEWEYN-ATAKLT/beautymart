@@ -81,9 +81,10 @@
 // }
 
 
-import { NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
+import { getActiveRequestUser } from "../../../../lib/request-auth";
+import { activateVerifiedSubscriptionPayment } from "../../../../lib/subscription-activation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -110,15 +111,11 @@ function addCalendarMonths(date: Date, months: number) {
   return result;
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request as never,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: process.env.NODE_ENV === "production",
-    });
+    const activeUser = await getActiveRequestUser(request);
 
-    if (!token?.id || token.role !== "STORE_OWNER") {
+    if (!activeUser || activeUser.role !== "STORE_OWNER") {
       return NextResponse.json(
         { message: "You must be logged in as a store owner." },
         { status: 401 }
@@ -126,7 +123,7 @@ export async function GET(request: Request) {
     }
 
     const store = await prisma.store.findUnique({
-      where: { ownerId: String(token.id) },
+      where: { ownerId: activeUser.userId },
       select: { storeId: true },
     });
 
@@ -234,7 +231,8 @@ if (
 }
 
 
-          await prisma.$transaction(async (tx) => {
+          await activateVerifiedSubscriptionPayment(payment.subscriptionPaymentId, txRef);
+          /* await prisma.$transaction(async (tx) => {
             const claimed =
               await tx.subscriptionPayment.updateMany({
                 where: {
@@ -299,7 +297,7 @@ const endDate = addCalendarMonths(startDate, months);
                 endDate,
               },
             });
-          });
+          }); */
         } catch {
           console.error(
             "A pending subscription payment could not be reconciled."

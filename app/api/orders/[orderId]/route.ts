@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../../lib/prisma";
+import { getActiveRequestUser } from "../../../../lib/request-auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user || user.role !== "CUSTOMER") {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
@@ -24,7 +20,7 @@ export async function GET(
 
     const customer = await prisma.customer.findUnique({
       where: {
-        userId: String(token.id),
+        userId: user.userId,
       },
       select: {
         customerId: true,

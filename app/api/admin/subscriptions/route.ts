@@ -1,15 +1,14 @@
 
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getActiveRequestUser } from "../../../../lib/request-auth";
 import { prisma } from "../../../../lib/prisma";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await getActiveRequestUser(request);
 
     // Only Super Admin can access subscription monitoring
-    if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -19,11 +18,33 @@ export async function GET() {
       );
     }
 
+    if (user.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { success: false, message: "Forbidden" },
+        { status: 403 }
+      );
+    }
+
     const subscriptions = await prisma.subscription.findMany({
       orderBy: {
         createdAt: "desc",
       },
       include: {
+        payments: {
+          orderBy: { createdAt: "desc" },
+          take: 20,
+          select: {
+            subscriptionPaymentId: true,
+            planType: true,
+            amount: true,
+            currency: true,
+            status: true,
+            provider: true,
+            transactionReference: true,
+            paidAt: true,
+            createdAt: true,
+          },
+        },
         store: {
           select: {
             storeId: true,
@@ -71,6 +92,27 @@ export async function GET() {
         isExpired: effectiveStatus === "EXPIRED",
 
         createdAt: subscription.createdAt,
+        latestPayment: subscription.payments[0]
+          ? {
+              amount: Number(subscription.payments[0].amount),
+              currency: subscription.payments[0].currency,
+              status: subscription.payments[0].status,
+              provider: subscription.payments[0].provider,
+              paidAt: subscription.payments[0].paidAt,
+              createdAt: subscription.payments[0].createdAt,
+            }
+          : null,
+        paymentHistory: subscription.payments.map((payment) => ({
+          subscriptionPaymentId: payment.subscriptionPaymentId,
+          planType: payment.planType,
+          amount: Number(payment.amount),
+          currency: payment.currency,
+          status: payment.status,
+          provider: payment.provider,
+          transactionReference: payment.transactionReference,
+          paidAt: payment.paidAt,
+          createdAt: payment.createdAt,
+        })),
 
         store: {
           storeId: subscription.store.storeId,

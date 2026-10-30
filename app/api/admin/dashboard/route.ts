@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../../lib/prisma";
+import { getActiveRequestUser } from "../../../../lib/request-auth";
 
 export async function GET(request: NextRequest) {
   try {
     // Check the logged-in user
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
+    const user = await getActiveRequestUser(request);
 
     // Only Super Admin can access this API
-    if (!token || token.role !== "SUPER_ADMIN") {
+    if (!user || user.role !== "SUPER_ADMIN") {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -21,6 +18,7 @@ export async function GET(request: NextRequest) {
     // Get platform-wide statistics
     const [
       totalStores,
+      activeStores,
       totalStoreOwners,
       totalCustomers,
       totalProducts,
@@ -29,6 +27,8 @@ export async function GET(request: NextRequest) {
       pendingOrders,
     ] = await Promise.all([
       prisma.store.count(),
+
+      prisma.store.count({ where: { status: "ACTIVE" } }),
 
       prisma.user.count({
         where: {
@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       totalStores,
+      activeStores,
       totalStoreOwners,
       totalCustomers,
       totalProducts,

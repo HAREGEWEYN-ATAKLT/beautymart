@@ -20,6 +20,10 @@ export default function CreateStorePage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [createdStore, setCreatedStore] = useState<{ storeId: string; storeName: string } | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [uploadingBranding, setUploadingBranding] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,12 +54,8 @@ export default function CreateStorePage() {
         return;
       }
 
-      setSuccess("Store created successfully!");
-
-      setTimeout(() => {
-        router.push("/store-owner");
-        router.refresh();
-      }, 1200);
+      setCreatedStore({ storeId: data.store.storeId, storeName: data.store.storeName });
+      setSuccess("Your store was created. Add its branding now, or do it later in Settings.");
     } catch (error) {
       console.error("Create store error:", error);
       setError("Something went wrong. Please try again.");
@@ -100,6 +100,44 @@ export default function CreateStorePage() {
             </div>
           </div>
         </main>
+      </div>
+    );
+  }
+
+  const uploadBrandingAndContinue = async () => {
+    if (!createdStore) return;
+    setUploadingBranding(true); setError("");
+    try {
+      for (const [imageType, file] of [["logo", logoFile], ["banner", bannerFile]] as const) {
+        if (!file) continue;
+        const formData = new FormData();
+        formData.set("storeId", createdStore.storeId);
+        formData.set("imageType", imageType);
+        formData.set("image", file);
+        const response = await fetch("/api/stores/image", { method: "POST", body: formData });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "An image could not be uploaded.");
+      }
+      router.push("/store-owner/settings");
+      router.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Store created, but branding could not be uploaded. You can try again in Settings.");
+    } finally { setUploadingBranding(false); }
+  };
+
+  if (createdStore) {
+    return (
+      <div className="create-store-page">
+        <header className="create-store-navbar"><div className="create-store-navbar-inner"><div className="create-brand"><div className="create-brand-logo">B</div><div><h1 className="create-brand-name">BeautyMart</h1><p className="create-brand-subtitle">Store Management</p></div></div></div></header>
+        <main className="create-store-main"><div className="create-store-container"><div className="create-store-header"><p className="create-store-label">Store created</p><h2 className="create-store-title">Make your store recognizable.</h2><p className="create-store-description">A logo and wide cover image make your public store page feel like your real beauty brand.</p></div>
+          <section className="create-store-card"><div className="create-store-card-header"><h3 className="create-store-card-title">{createdStore.storeName} branding</h3><p className="create-store-card-description">Both images are optional. You can change them later from Settings.</p></div><div className="create-store-form">
+            {success ? <div className="form-success" role="status">{success}</div> : null}{error ? <div className="form-error" role="alert">{error}</div> : null}
+            <div className="create-branding-grid">
+              <label className="create-image-upload"><span>Store logo</span><strong>{logoFile ? logoFile.name : "Choose a square logo"}</strong><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setLogoFile(event.target.files?.[0] ?? null)} /><small>JPEG, PNG, or WebP · maximum 5 MB</small></label>
+              <label className="create-image-upload"><span>Store cover image</span><strong>{bannerFile ? bannerFile.name : "Choose a wide cover image"}</strong><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setBannerFile(event.target.files?.[0] ?? null)} /><small>This appears at the top of your public store page.</small></label>
+            </div>
+            <div className="form-footer"><p className="form-footer-note">You can skip this now and add branding later in Store Settings.</p><div className="form-actions"><button type="button" className="cancel-button" onClick={() => router.push("/store-owner")}>Skip for now</button><button type="button" className="create-button" disabled={uploadingBranding} onClick={() => void uploadBrandingAndContinue()}>{uploadingBranding ? "Uploading..." : "Save branding"}</button></div></div>
+          </div></section></div></main>
       </div>
     );
   }

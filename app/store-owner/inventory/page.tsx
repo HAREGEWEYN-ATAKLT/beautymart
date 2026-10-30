@@ -24,47 +24,25 @@ export default function InventoryPage() {
   const [store, setStore] = useState<Store | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const loadInventory = async () => {
+    try {
+      setLoading(true); setError("");
+      const storesResponse = await fetch("/api/stores");
+      const storesData = await storesResponse.json();
+      if (!storesResponse.ok || !storesData.stores?.length) throw new Error(storesData.message || "Your store could not be loaded.");
+      const ownerStore = storesData.stores[0]; setStore(ownerStore);
+      const productsResponse = await fetch(`/api/products?storeId=${encodeURIComponent(ownerStore.storeId)}`);
+      const productsData = await productsResponse.json();
+      if (!productsResponse.ok) throw new Error(productsData.message || "Inventory could not be loaded.");
+      setProducts(productsData.products || []);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Inventory could not be loaded."); }
+    finally { setLoading(false); }
+  };
 
   useEffect(() => {
-    const loadInventory = async () => {
-      try {
-        const storesResponse = await fetch("/api/stores");
-        const storesData = await storesResponse.json();
-
-        if (
-          !storesResponse.ok ||
-          !storesData.stores?.length
-        ) {
-          return;
-        }
-
-        const ownerStore = storesData.stores[0];
-
-        setStore(ownerStore);
-
-        const productsResponse = await fetch(
-          `/api/products?storeId=${encodeURIComponent(
-            ownerStore.storeId
-          )}`
-        );
-
-        const productsData =
-          await productsResponse.json();
-
-        if (
-          productsResponse.ok &&
-          productsData.products
-        ) {
-          setProducts(productsData.products);
-        }
-      } catch (error) {
-        console.error("Load inventory error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadInventory();
+    void loadInventory();
   }, []);
 
   const totalProducts = products.length;
@@ -118,6 +96,8 @@ export default function InventoryPage() {
 
         {loading ? (
           <p>Loading inventory...</p>
+        ) : error ? (
+          <div className="inventory-empty"><p>{error}</p><button type="button" onClick={() => void loadInventory()}>Try again</button></div>
         ) : (
           <>
             <section className="inventory-stats">
@@ -173,6 +153,7 @@ export default function InventoryPage() {
                       <th>Stock</th>
                       <th>Minimum</th>
                       <th>Status</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
 
@@ -180,7 +161,7 @@ export default function InventoryPage() {
                     {products.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={6}
                           className="inventory-empty"
                         >
                           No products found.
@@ -223,20 +204,32 @@ export default function InventoryPage() {
                            <td>
   <span
     className={`inventory-status ${
-      quantity === 0
+      !product.isActive
+        ? "inventory-status-inactive"
+        : quantity === 0
         ? "inventory-status-out"
         : isLowStock
           ? "inventory-status-low"
           : "inventory-status-in"
     }`}
   >
-    {quantity === 0
+    {!product.isActive
+      ? "Inactive"
+      : quantity === 0
       ? "Out of Stock"
       : isLowStock
         ? "Low Stock"
         : "In Stock"}
   </span>
 </td>
+                            <td>
+                              <Link
+                                href={`/store-owner/products/edit/${product.productId}`}
+                                className="inventory-edit-link"
+                              >
+                                Edit stock
+                              </Link>
+                            </td>
 
                           </tr>
                         );

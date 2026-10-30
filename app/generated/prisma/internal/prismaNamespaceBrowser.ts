@@ -63,6 +63,8 @@ export const ModelName = {
   Customer: 'Customer',
   Address: 'Address',
   Order: 'Order',
+  CancellationRequest: 'CancellationRequest',
+  CheckoutAttempt: 'CheckoutAttempt',
   OrderItem: 'OrderItem',
   StorePayment: 'StorePayment',
   Payment: 'Payment',
@@ -244,10 +246,39 @@ export const OrderScalarFieldEnum = {
   finalAmount: 'finalAmount',
   paymentStatus: 'paymentStatus',
   orderStatus: 'orderStatus',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  checkoutAttemptId: 'checkoutAttemptId'
 } as const
 
 export type OrderScalarFieldEnum = (typeof OrderScalarFieldEnum)[keyof typeof OrderScalarFieldEnum]
+
+
+export const CancellationRequestScalarFieldEnum = {
+  cancellationRequestId: 'cancellationRequestId',
+  orderId: 'orderId',
+  customerId: 'customerId',
+  status: 'status',
+  reason: 'reason',
+  requestedAt: 'requestedAt',
+  reviewedAt: 'reviewedAt',
+  reviewedByUserId: 'reviewedByUserId',
+  reviewNote: 'reviewNote',
+  inventoryRestoredAt: 'inventoryRestoredAt'
+} as const
+
+export type CancellationRequestScalarFieldEnum = (typeof CancellationRequestScalarFieldEnum)[keyof typeof CancellationRequestScalarFieldEnum]
+
+
+export const CheckoutAttemptScalarFieldEnum = {
+  checkoutAttemptId: 'checkoutAttemptId',
+  customerId: 'customerId',
+  idempotencyKey: 'idempotencyKey',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CheckoutAttemptScalarFieldEnum = (typeof CheckoutAttemptScalarFieldEnum)[keyof typeof CheckoutAttemptScalarFieldEnum]
 
 
 export const OrderItemScalarFieldEnum = {

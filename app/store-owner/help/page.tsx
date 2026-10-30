@@ -257,7 +257,7 @@ export default function HelpCenterPage() {
           <div>
             <span className="help-label">NEED MORE HELP?</span>
 
-            <h2>We're here to help.</h2>
+            <h2>We&apos;re here to help.</h2>
 
             <p>
               If you cannot find the information you need, contact the

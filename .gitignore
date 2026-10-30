@@ -20,6 +20,9 @@
 # production
 /build
 
+# Local PostgreSQL backups may contain customer and order data.
+/backups/
+
 # misc
 .DS_Store
 *.pem

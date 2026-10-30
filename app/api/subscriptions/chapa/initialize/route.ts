@@ -1,8 +1,8 @@
 
 import { randomUUID } from "node:crypto";
-import { NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
+import { getActiveRequestUser } from "../../../../../lib/request-auth";
 
 export const runtime = "nodejs";
 
@@ -13,22 +13,18 @@ const PLAN_PRICES = {
 
 type PaidPlan = keyof typeof PLAN_PRICES;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request as never,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: process.env.NODE_ENV === "production",
-    });
+    const activeUser = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!activeUser) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
       );
     }
 
-    if (token.role !== "STORE_OWNER") {
+    if (activeUser.role !== "STORE_OWNER") {
       return NextResponse.json(
         { message: "Only store owners can purchase subscriptions." },
         { status: 403 }
@@ -85,7 +81,7 @@ export async function POST(request: Request) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { userId: String(token.id) },
+      where: { userId: activeUser.userId },
       select: {
         userId: true,
         email: true,
@@ -257,7 +253,7 @@ try {
             },
           }),
           cache: "no-store",
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(30000),
         }
       );
 
@@ -291,18 +287,11 @@ try {
        
 console.error("Chapa subscription initialization failed:", {
   httpStatus: chapaResponse.status,
-  responseBody: chapaResponseText.slice(0, 1000),
-  chapaStatus:
+  providerStatus:
 
             typeof chapaData.status === "string"
               ? chapaData.status
               : "missing",
-          chapaMessage:
-            typeof chapaData.message === "string"
-              ? chapaData.message
-              : typeof chapaData.data?.message === "string"
-                ? chapaData.data.message
-                : "No error message returned",
           checkoutUrlReceived: typeof checkoutUrl === "string",
         });
 

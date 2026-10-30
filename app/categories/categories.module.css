@@ -354,6 +354,11 @@
   gap: 27px 22px;
 }
 
+/* The shared carousel keeps the same category cards on one scrollable row. */
+.grid:global(.home-carousel-track) > * {
+  flex-basis: calc((100% - 44px) / 3);
+}
+
 .card {
   min-width: 0;
   overflow: hidden;
@@ -645,6 +650,10 @@
 }
 
 @media (max-width: 800px) {
+  .grid:global(.home-carousel-track) > * {
+    flex-basis: calc((100% - 20px) / 2);
+  }
+
   .heroInner {
     padding: 23px 25px 45px;
   }
@@ -694,6 +703,10 @@
 }
 
 @media (max-width: 520px) {
+  .grid:global(.home-carousel-track) > * {
+    flex-basis: min(82vw, 340px);
+  }
+
   .heroInner {
     padding: 20px 19px 32px;
   }

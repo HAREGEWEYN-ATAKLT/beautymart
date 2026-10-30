@@ -3,6 +3,7 @@ import NextAuth, { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./lib/prisma";
 import argon2 from "argon2";
+import { isValidEmail, normalizeEmail } from "./lib/account-validation";
 
 const authOptions: NextAuthOptions = {
   providers: [
@@ -25,8 +26,14 @@ const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const email = String(credentials.email).trim().toLowerCase();
-        const password = String(credentials.password);
+        const email = normalizeEmail(credentials.email);
+        const password = credentials.password;
+
+        // New registration requires 8+ characters. Do not reject a legacy
+        // account before Argon2 can verify its existing stored password.
+        if (!isValidEmail(email) || typeof password !== "string" || password.length > 1024) {
+          return null;
+        }
 
         const user = await prisma.user.findUnique({
           where: { email },

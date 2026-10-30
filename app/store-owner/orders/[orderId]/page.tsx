@@ -53,10 +53,19 @@ type Order = {
     storeId: string;
     storeName: string;
   };
+  cancellationRequest?: { status: "REQUESTED" | "APPROVED" | "REJECTED"; reason: string | null } | null;
 };
 
 export default function OrderDetailsPage() {
   const [order, setOrder] = useState<Order | null>(null);
+  const [cancellationMessage, setCancellationMessage] = useState("");
+  const reviewCancellation = async (decision: "APPROVED" | "REJECTED") => {
+    if (!order) return;
+    const response = await fetch(`/api/store-owner/orders/${order.orderId}/cancellation-request`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision }) });
+    const data = await response.json();
+    setCancellationMessage(data.message || "Unable to review cancellation request.");
+    if (response.ok) setOrder((current) => current?.cancellationRequest ? { ...current, cancellationRequest: { ...current.cancellationRequest, status: decision } } : current);
+  };
   const handleStatusUpdate = async (
   status: "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED"
 ) => {
@@ -446,6 +455,26 @@ export default function OrderDetailsPage() {
               </span>
 
               <h2>Manage Order</h2>
+{order.cancellationRequest?.status === "REQUESTED" && (
+  <div className="order-action-buttons">
+    <p className="order-details-muted">Cancellation requested{order.cancellationRequest.reason ? `: ${order.cancellationRequest.reason}` : "."}</p>
+    <button type="button" onClick={() => reviewCancellation("REJECTED")}>Reject cancellation</button>
+    {order.paymentStatus === "FAILED" && order.orderStatus === "PENDING" && <button type="button" className="order-action-secondary" onClick={() => reviewCancellation("APPROVED")}>Approve cancellation and restore stock</button>}
+    {order.paymentStatus !== "FAILED" && (
+      <>
+        <button type="button" className="order-action-secondary" disabled aria-describedby="cancellation-approval-help">
+          Approve cancellation and restore stock
+        </button>
+        <p id="cancellation-approval-help" className="order-details-muted">
+          {order.paymentStatus === "PENDING"
+            ? "This Chapa payment is still pending. Approval is unavailable until server-side payment verification confirms it failed."
+            : "Approval is unavailable because this payment was not confirmed failed. Paid orders need a verified refund process outside this feature."}
+        </p>
+      </>
+    )}
+  </div>
+)}
+{cancellationMessage && <p role="status" className="order-details-muted">{cancellationMessage}</p>}
 <div className="order-action-buttons">
   {order.orderStatus === "PENDING" && (
     <button

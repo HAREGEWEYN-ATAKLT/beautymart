@@ -1,16 +1,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../../lib/prisma";
+import { getActiveRequestUser } from "../../../../lib/request-auth";
+import { getStoreManagementBlockReason } from "../../../../lib/store-management-access";
 
 async function getOwnedStore(request: NextRequest) {
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-    secureCookie: false,
-  });
+  const user = await getActiveRequestUser(request);
 
-  if (!token?.id) {
+  if (!user) {
     return {
       error: NextResponse.json(
         { message: "You must be logged in." },
@@ -19,7 +16,7 @@ async function getOwnedStore(request: NextRequest) {
     };
   }
 
-  if (token.role !== "STORE_OWNER") {
+  if (user.role !== "STORE_OWNER") {
     return {
       error: NextResponse.json(
         { message: "Only store owners can manage categories." },
@@ -29,7 +26,7 @@ async function getOwnedStore(request: NextRequest) {
   }
 
   const store = await prisma.store.findFirst({
-    where: { ownerId: String(token.id) },
+    where: { ownerId: user.userId },
     include: { subscription: true },
   });
 
@@ -86,23 +83,10 @@ export async function POST(request: NextRequest) {
 
     const { store } = result;
 
-    if (!store.subscription) {
+    const managementBlock = getStoreManagementBlockReason(store);
+    if (managementBlock) {
       return NextResponse.json(
-        { message: "Your store has no subscription." },
-        { status: 403 }
-      );
-    }
-
-    if (
-      store.subscription.status !== "ACTIVE" ||
-      !store.subscription.isActive ||
-      store.subscription.endDate <= new Date()
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "Your subscription is inactive or expired. Renew it before managing categories.",
-        },
+        { message: managementBlock },
         { status: 403 }
       );
     }
@@ -172,4 +156,40 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const result = await getOwnedStore(request);
+    if ("error" in result) return result.error;
+    const managementBlock = getStoreManagementBlockReason(result.store);
+    if (managementBlock) return NextResponse.json({ message: managementBlock }, { status: 403 });
+    const body = await request.json();
+    const categoryId = typeof body.categoryId === "string" ? body.categoryId : "";
+    const categoryName = typeof body.categoryName === "string" ? body.categoryName.trim() : "";
+    const description = typeof body.description === "string" ? body.description.trim() : "";
+    if (!categoryId || !categoryName || categoryName.length > 80) return NextResponse.json({ message: "A category ID and a name of 80 characters or fewer are required." }, { status: 400 });
+    const category = await prisma.category.findFirst({ where: { categoryId, storeId: result.store.storeId } });
+    if (!category) return NextResponse.json({ message: "Category not found." }, { status: 404 });
+    const duplicate = await prisma.category.findFirst({ where: { storeId: result.store.storeId, categoryName: { equals: categoryName, mode: "insensitive" }, categoryId: { not: categoryId } } });
+    if (duplicate) return NextResponse.json({ message: "This category already exists in your store." }, { status: 409 });
+    const updated = await prisma.category.update({ where: { categoryId }, data: { categoryName, description: description || null } });
+    return NextResponse.json({ message: "Category updated successfully.", category: updated });
+  } catch { return NextResponse.json({ message: "Failed to update category." }, { status: 500 }); }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const result = await getOwnedStore(request);
+    if ("error" in result) return result.error;
+    const managementBlock = getStoreManagementBlockReason(result.store);
+    if (managementBlock) return NextResponse.json({ message: managementBlock }, { status: 403 });
+    const body = await request.json();
+    const categoryId = typeof body.categoryId === "string" ? body.categoryId : "";
+    const category = await prisma.category.findFirst({ where: { categoryId, storeId: result.store.storeId }, include: { _count: { select: { products: true } } } });
+    if (!category) return NextResponse.json({ message: "Category not found." }, { status: 404 });
+    if (category._count.products > 0) return NextResponse.json({ message: "This category still has products. Move or deactivate those products before deleting it." }, { status: 409 });
+    await prisma.category.delete({ where: { categoryId } });
+    return NextResponse.json({ message: "Category deleted successfully." });
+  } catch { return NextResponse.json({ message: "Failed to delete category." }, { status: 500 }); }
 }

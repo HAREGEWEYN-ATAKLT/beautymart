@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
+import { completeCheckoutAttemptIfPaid } from "../../../../../lib/checkout";
 
 export async function GET(request: Request) {
   try {
@@ -10,15 +11,9 @@ const txRef =
   searchParams.get("tx_ref") ||
   searchParams.get("ref_id");
 
-console.log("Chapa callback URL:", request.url);
-console.log("Chapa callback txRef:", txRef);
-
 if (!txRef) {
   return NextResponse.json(
-    {
-      message: "Transaction reference is missing.",
-      receivedParams: Object.fromEntries(searchParams.entries()),
-    },
+    { message: "Transaction reference is missing." },
     { status: 400 }
   );
 }
@@ -48,14 +43,9 @@ if (!txRef) {
 
     const data = await response.json();
 
-    console.log("Chapa verification response:", data);
-
     if (!response.ok || data.status !== "success") {
       return NextResponse.json(
-        {
-          message: "Chapa payment verification failed.",
-          details: data,
-        },
+        { message: "Chapa payment verification failed." },
         { status: 400 }
       );
     }
@@ -63,10 +53,7 @@ if (!txRef) {
 const transaction = data.data;
 
 if (transaction.tx_ref !== txRef) {
-  console.error("Chapa transaction reference mismatch:", {
-    expected: txRef,
-    received: transaction.tx_ref,
-  });
+  console.error("Chapa transaction reference did not match the callback.");
 
   return NextResponse.json(
     { message: "Transaction reference does not match." },
@@ -76,6 +63,7 @@ if (transaction.tx_ref !== txRef) {
 
 const payment = await prisma.payment.findFirst({
   where: { transactionReference: txRef, provider: "CHAPA" },
+  include: { order: { select: { checkoutAttemptId: true } } },
 });
 
 if (!payment) {
@@ -86,7 +74,14 @@ if (!payment) {
 }
 
 if (payment.status === "PAID") {
-  return NextResponse.redirect(new URL("/orders", request.url));
+  if (payment.order.checkoutAttemptId) {
+    await completeCheckoutAttemptIfPaid(payment.order.checkoutAttemptId);
+  }
+  const destination = new URL("/checkout", request.url);
+  if (payment.order.checkoutAttemptId) {
+    destination.searchParams.set("checkoutAttempt", payment.order.checkoutAttemptId);
+  }
+  return NextResponse.redirect(destination);
 }
 
 if (payment.status !== "PENDING") {
@@ -111,12 +106,7 @@ if (
   !Number.isFinite(Number(transaction.amount)) ||
   Math.abs(Number(transaction.amount) - Number(payment.amount)) > 0.001
 ) {
-  console.error("Chapa payment details mismatch:", {
-    txRef,
-    currency: transaction.currency,
-    receivedAmount: transaction.amount,
-    expectedAmount: Number(payment.amount),
-  });
+  console.error("Chapa payment details did not match the saved payment.");
 
   return NextResponse.json(
     { message: "Verified payment details do not match the order." },
@@ -160,13 +150,24 @@ if (!paymentClaim) {
   });
 
   if (latestPayment?.status === "PAID") {
-    return NextResponse.redirect(new URL("/orders", request.url));
+    if (payment.order.checkoutAttemptId) {
+      await completeCheckoutAttemptIfPaid(payment.order.checkoutAttemptId);
+    }
+    const destination = new URL("/checkout", request.url);
+    if (payment.order.checkoutAttemptId) {
+      destination.searchParams.set("checkoutAttempt", payment.order.checkoutAttemptId);
+    }
+    return NextResponse.redirect(destination);
   }
 
   return NextResponse.json(
     { message: "Payment status changed. Please check your order." },
     { status: 409 }
   );
+}
+
+if (payment.order.checkoutAttemptId) {
+  await completeCheckoutAttemptIfPaid(payment.order.checkoutAttemptId);
 }
 
     
@@ -185,7 +186,9 @@ if (!paymentClaim) {
   prisma.order.findUnique({
     where: { orderId: payment.orderId },
     select: {
+      orderId: true,
       orderNumber: true,
+      customer: { select: { userId: true } },
     },
   }),
   prisma.user.findMany({
@@ -208,6 +211,13 @@ if (!paymentClaim) {
   notificationType: "PAYMENT" as const,
   deduplicationKey: `store-order-payment:${payment.paymentId}:${store.ownerId}`,
 },
+  {
+    userId: order.customer.userId,
+    title: "Payment verified",
+    message: `Your payment for order ${order.orderNumber} at ${store.storeName} has been verified successfully.`,
+    notificationType: "PAYMENT" as const,
+    deduplicationKey: `customer-order-payment:${payment.paymentId}:${order.orderId}:${order.customer.userId}`,
+  },
     ...admins.map((admin) => ({
       userId: admin.userId,
       title: "Marketplace payment received",
@@ -222,18 +232,17 @@ if (!paymentClaim) {
     skipDuplicates: true,
   });
 }
-    } catch (notificationError) {
-      console.error(
-        "Payment was confirmed, but the store-owner notification failed:",
-        notificationError
-      );
+    } catch {
+      console.error("Payment was confirmed, but payment notifications failed.");
     }
     // Send customer back to their orders
-    return NextResponse.redirect(
-      new URL("/orders", request.url)
-    );
-  } catch (error) {
-    console.error("Chapa callback error:", error);
+    const destination = new URL("/checkout", request.url);
+    if (payment.order.checkoutAttemptId) {
+      destination.searchParams.set("checkoutAttempt", payment.order.checkoutAttemptId);
+    }
+    return NextResponse.redirect(destination);
+  } catch {
+    console.error("Chapa callback verification failed.");
 
     return NextResponse.json(
       {

@@ -293,6 +293,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import HorizontalCarousel from "../components/HorizontalCarousel";
 import styles from "./categories.module.css";
 
 type Product = {
@@ -522,7 +523,10 @@ export default function CategoriesPage() {
             </button>
           </div>
         ) : filteredCategories.length > 0 ? (
-          <div className={styles.grid}>
+          <HorizontalCarousel
+            className={styles.grid}
+            label="Beauty collections"
+          >
             {filteredCategories.map((category, index) => (
               <Link
                 href={`/products?category=${encodeURIComponent(category.name)}`}
@@ -566,7 +570,7 @@ export default function CategoriesPage() {
                 </div>
               </Link>
             ))}
-          </div>
+          </HorizontalCarousel>
         ) : (
           <div className={styles.emptyState}>
             <span className={styles.emptyIcon}>♡</span>

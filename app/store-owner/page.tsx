@@ -35,6 +35,7 @@ type Order = {
   orderId: string;
   orderNumber: string;
   finalAmount: string | number;
+  paymentStatus: string;
   orderStatus: string;
   createdAt: string;
  customer: {
@@ -52,6 +53,7 @@ const [store, setStore] = useState<Store | null>(null);
 const [products, setProducts] = useState<Product[]>([]);
 const [orders, setOrders] = useState<Order[]>([]);
 const [loading, setLoading] = useState(true);
+const [loadError, setLoadError] = useState("");
 const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   /*
   |--------------------------------------------------------------------------
@@ -63,6 +65,7 @@ const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const loadDashboard = async () => {
       try {
         setLoading(true);
+        setLoadError("");
 
         /*
         |--------------------------------------------------------------
@@ -138,11 +141,8 @@ if (
   setOrders(ordersData.orders);
 }
         }
-      } catch (error) {
-        console.error(
-          "Load dashboard error:",
-          error
-        );
+      } catch (cause) {
+        setLoadError(cause instanceof Error ? cause.message : "Your dashboard could not be loaded.");
       } finally {
         setLoading(false);
       }
@@ -162,7 +162,7 @@ const totalOrders = orders.length;
 const totalCustomers = new Set(
   orders.map((order) => order.customer.customerId)
 ).size;
-const totalRevenue = orders.reduce(
+const totalRevenue = orders.filter((order) => order.paymentStatus === "PAID").reduce(
   (total, order) =>
     total + Number(order.finalAmount),
   0
@@ -175,7 +175,7 @@ const pendingOrders = orders.filter(
   ).length;
 const salesByDay = Array(7).fill(0);
 
-orders.forEach((order) => {
+orders.filter((order) => order.paymentStatus === "PAID").forEach((order) => {
   const orderDate = new Date(order.createdAt);
   const today = new Date();
 
@@ -607,6 +607,15 @@ const chartHeights = salesByDay.map(
                     </Link>
                   </div>
                 </>
+              ) : loadError ? (
+                <div className="store-profile-empty" role="alert">
+                  <div className="store-profile-empty-icon">!</div>
+                  <h4>Dashboard could not be loaded</h4>
+                  <p>{loadError}</p>
+                  <button type="button" className="primary-button" onClick={() => window.location.reload()}>
+                    Try Again
+                  </button>
+                </div>
               ) : (
                 <div className="store-profile-empty">
                   <div className="store-profile-empty-icon">🏪</div>

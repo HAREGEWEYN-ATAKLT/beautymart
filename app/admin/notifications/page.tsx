@@ -419,7 +419,8 @@ function AdminNotificationsContent() {
   }, []);
 
   useEffect(() => {
-    void loadNotifications();
+    const timer = window.setTimeout(() => void loadNotifications(), 0);
+    return () => window.clearTimeout(timer);
   }, [loadNotifications]);
 
   const selectedNotification =
@@ -476,7 +477,8 @@ function AdminNotificationsContent() {
     if (!selectedId || loading || !selectedNotification) return;
 
     if (!selectedNotification.isRead) {
-      void markAsRead(selectedId);
+      const timer = window.setTimeout(() => void markAsRead(selectedId), 0);
+      return () => window.clearTimeout(timer);
     }
   }, [selectedId, loading, selectedNotification, markAsRead]);
 

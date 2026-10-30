@@ -537,7 +537,7 @@ const primaryImage =
   type="button"
   onClick={async () => {
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${product.productName}"?`
+      `Remove "${product.productName}" from sale? Products with order history are kept inactive to preserve customer records.`
     );
 
     if (!confirmed) {
@@ -561,6 +561,8 @@ const primaryImage =
         alert(data.message || "Failed to delete product.");
         return;
       }
+
+      if (data.deactivated) alert(data.message);
 
       setProducts((currentProducts) =>
         currentProducts.filter(

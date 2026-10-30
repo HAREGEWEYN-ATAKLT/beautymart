@@ -3,8 +3,9 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, type ReactNode, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import HorizontalCarousel from "../components/HorizontalCarousel";
 type Product = {
   productId: string;
   productName: string;
@@ -44,6 +45,27 @@ const fallbackImages = [
   "/images/Foreign.png",
   "/images/secondPerfect.png",
 ];
+
+function ProductCollection({
+  categoryName,
+  children,
+}: {
+  categoryName: string;
+  children: ReactNode;
+}) {
+  if (categoryName === "All") {
+    return <div className="all-products-grid">{children}</div>;
+  }
+
+  return (
+    <HorizontalCarousel
+      className="all-products-grid"
+      label={`${categoryName} products`}
+    >
+      {children}
+    </HorizontalCarousel>
+  );
+}
 
 function ProductsContent() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -100,21 +122,15 @@ if (!normalizedRequestedCategory) {
 
 
 const categories = useMemo(() => {
-  const featuredCategories = [
-    "Skincare",
-    "Makeup",
-    "Haircare",
-    "Fragrance",
-  ];
-
-  const existingProductCategories = products.map(
-    (product) => product.category.categoryName
-  );
-
-  return [
-    "All",
-    ...new Set([...featuredCategories, ...existingProductCategories]),
-  ];
+  // Use only real categories returned by the marketplace API. This prevents
+  // a static button such as "Skincare" from appearing beside a database
+  // category named "skincare" and confusing customers.
+  const uniqueCategories = new Map<string, string>();
+  for (const product of products) {
+    const name = product.category.categoryName.trim();
+    if (name) uniqueCategories.set(name.toLowerCase(), name);
+  }
+  return ["All", ...Array.from(uniqueCategories.values()).sort((a, b) => a.localeCompare(b))];
 }, [products]);
 
 
@@ -125,7 +141,7 @@ const categories = useMemo(() => {
 
     return products.filter(
       (product) =>
-        product.category.categoryName === selectedCategory
+        product.category.categoryName.toLowerCase() === selectedCategory.toLowerCase()
     );
   }, [products, selectedCategory]);
 
@@ -221,7 +237,7 @@ const categories = useMemo(() => {
           {/* Product Grid */}
 
           {!loading && !error && filteredProducts.length > 0 && (
-            <div className="all-products-grid">
+            <ProductCollection categoryName={selectedCategory}>
 
               {filteredProducts.map((product, index) => {
                 const primaryImage = product.images.find(
@@ -364,7 +380,7 @@ const categories = useMemo(() => {
                 );
               })}
 
-            </div>
+            </ProductCollection>
           )}
 
         </div>

@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           <strong>Important before public launch</strong>
           <p>
             This is a starter privacy notice. The final policy must be checked
-            against the site's actual data collection, analytics, hosting,
+            against the site&apos;s actual data collection, analytics, hosting,
             retention, and payment-provider practices before publication.
           </p>
         </div>

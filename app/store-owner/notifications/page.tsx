@@ -33,6 +33,7 @@ type NotificationItem = {
   notificationType: NotificationType;
   isRead: boolean;
   createdAt: string;
+  deduplicationKey?: string | null;
 };
 
 const CATEGORY_LABELS: Record<NotificationType, string> = {
@@ -409,6 +410,11 @@ function NotificationsContent() {
                 <div className={styles.detailMessage}>
                   {selectedNotification.message}
                 </div>
+
+                {selectedNotification.deduplicationKey?.startsWith("store-cancellation-request:") && (() => {
+                  const [, orderId] = selectedNotification.deduplicationKey.split(":");
+                  return orderId ? <button type="button" className={styles.primaryButton} onClick={() => router.push(`/store-owner/orders/${orderId}`)}>Review cancellation request</button> : null;
+                })()}
 
                 <div className={styles.detailFooter}>
                   <span>BeautyMart · Store notifications</span>

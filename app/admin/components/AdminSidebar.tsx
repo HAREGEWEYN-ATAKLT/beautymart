@@ -39,7 +39,6 @@ const menuSections = [
     title: "SYSTEM",
     items: [
       { label: "Notifications", href: "/admin/notifications", icon: "♢" },
-      { label: "Settings", href: "/admin/settings", icon: "⚙" },
     ],
   },
 ];

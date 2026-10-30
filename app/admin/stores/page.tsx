@@ -29,6 +29,9 @@ export default function AdminStoresPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [updatingStoreId, setUpdatingStoreId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
@@ -83,6 +86,53 @@ export default function AdminStoresPage() {
     (store) => store.status === "SUSPENDED"
   ).length;
 
+  async function updateStoreStatus(store: Store, newStatus: Store["status"]) {
+    if (newStatus === store.status || updatingStoreId) return;
+
+    const action = newStatus === "SUSPENDED" ? "suspend" : "change the status of";
+    const confirmed = window.confirm(
+      `Are you sure you want to ${action} ${store.storeName}? ` +
+        "This controls store-management access. It does not change the store subscription."
+    );
+
+    if (!confirmed) return;
+
+    setActionMessage("");
+    setActionError("");
+    setUpdatingStoreId(store.storeId);
+
+    try {
+      const response = await fetch(`/api/admin/stores/${store.storeId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update status");
+      }
+
+      setStores((currentStores) =>
+        currentStores.map((currentStore) =>
+          currentStore.storeId === store.storeId
+            ? { ...currentStore, status: data.store.status }
+            : currentStore
+        )
+      );
+      setActionMessage(`${store.storeName} is now ${data.store.status.toLowerCase()}. The owner has been notified.`);
+    } catch (actionError) {
+      console.error("Store status update error:", actionError);
+      setActionError(
+        actionError instanceof Error
+          ? actionError.message
+          : "Unable to update this store status. Please try again."
+      );
+    } finally {
+      setUpdatingStoreId(null);
+    }
+  }
+
 return (
   <section className="admin-dashboard-content">
           <div className="admin-page-intro">
@@ -100,6 +150,8 @@ return (
           </div>
 
           {error && <div className="admin-error">{error}</div>}
+          {actionError && <div className="admin-error">{actionError}</div>}
+          {actionMessage && <div className="admin-action-message">{actionMessage}</div>}
 
           <div className="admin-store-stat-grid">
             <div className="admin-store-stat-card">
@@ -247,44 +299,11 @@ return (
   <select
     className={`admin-status-select ${store.status.toLowerCase()}`}
     value={store.status}
-    onChange={async (event) => {
-      const newStatus = event.target.value;
-
-      try {
-        const response = await fetch(
-          `/api/admin/stores/${store.storeId}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              status: newStatus,
-            }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to update status");
-        }
-
-        setStores((currentStores) =>
-          currentStores.map((currentStore) =>
-            currentStore.storeId === store.storeId
-              ? {
-                  ...currentStore,
-                  status: data.store.status,
-                }
-              : currentStore
-          )
-        );
-      } catch (error) {
-        console.error("Store status update error:", error);
-        alert("Failed to update store status.");
-      }
-    }}
+    disabled={updatingStoreId === store.storeId}
+    aria-label={`Change status for ${store.storeName}`}
+    onChange={(event) =>
+      updateStoreStatus(store, event.target.value as Store["status"])
+    }
   >
     <option value="ACTIVE">ACTIVE</option>
     <option value="INACTIVE">INACTIVE</option>

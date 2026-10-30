@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import AdminSidebar from "../../components/AdminSidebar";
-import AdminHeader from "../../components/AdminHeader";
 import "../../admin.css";
 
 type StoreDetails = {
@@ -114,55 +112,26 @@ export default function AdminStoreDetailsPage() {
 
   if (loading) {
     return (
-      <div className="admin-layout">
-        <AdminSidebar />
-
-        <main className="admin-main">
-          <AdminHeader />
-
-          <section className="admin-dashboard-content">
-            <div className="admin-store-loading">
-              Loading store details...
-            </div>
-          </section>
-        </main>
-      </div>
+      <section className="admin-dashboard-content">
+        <div className="admin-store-loading">Loading store details...</div>
+      </section>
     );
   }
 
   if (error || !store) {
     return (
-      <div className="admin-layout">
-        <AdminSidebar />
+      <section className="admin-dashboard-content">
+        <div className="admin-error">{error || "Store not found."}</div>
 
-        <main className="admin-main">
-          <AdminHeader />
-
-          <section className="admin-dashboard-content">
-            <div className="admin-error">
-              {error || "Store not found."}
-            </div>
-
-            <Link
-              href="/admin/stores"
-              className="admin-secondary-button"
-            >
-              ← Back to Stores
-            </Link>
-          </section>
-        </main>
-      </div>
+        <Link href="/admin/stores" className="admin-secondary-button">
+          ← Back to Stores
+        </Link>
+      </section>
     );
   }
 
   return (
-    <div className="admin-layout">
-      <AdminSidebar />
-
-      <main className="admin-main">
-        <AdminHeader />
-
-        <section className="admin-dashboard-content">
+    <section className="admin-dashboard-content">
           {/* Back */}
           <Link
             href="/admin/stores"
@@ -532,8 +501,6 @@ export default function AdminStoreDetailsPage() {
               </div>
             )}
           </div>
-        </section>
-      </main>
-    </div>
+    </section>
   );
 }

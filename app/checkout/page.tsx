@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { subtractPaidOrderItems } from "../../lib/cart-payment";
 type CartItem = {
   id: string;
   name: string;
@@ -21,9 +22,10 @@ const [city, setCity] = useState("");
 const [subCity, setSubCity] = useState("");
 const [woreda, setWoreda] = useState("");
 const [houseNumber, setHouseNumber] = useState("");
-const [paymentMethod, setPaymentMethod] = useState("Telebirr");
+ const [paymentMethod, setPaymentMethod] = useState("Chapa");
 const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 const [pendingChapaOrderId, setPendingChapaOrderId] = useState<string | null>(null);
+  const [checkoutAttemptId, setCheckoutAttemptId] = useState<string | null>(null);
 const [chapaAttemptUncertain, setChapaAttemptUncertain] = useState(false);
   const router = useRouter();
  const { data: session, status } = useSession();
@@ -60,6 +62,45 @@ useEffect(() => {
   }
 }, []);
 
+useEffect(() => {
+  const attemptId = new URLSearchParams(window.location.search).get("checkoutAttempt") ||
+    localStorage.getItem("beautymart-checkout-attempt");
+  if (!attemptId) return;
+
+  setCheckoutAttemptId(attemptId);
+  localStorage.setItem("beautymart-checkout-attempt", attemptId);
+
+  void fetch("/api/orders", { cache: "no-store" })
+    .then((response) => response.ok ? response.json() : null)
+    .then((data) => {
+      const orders = (data?.orders ?? []).filter(
+        (order: { checkoutAttemptId?: string }) => order.checkoutAttemptId === attemptId
+      );
+      const nextUnpaid = orders.find(
+        (order: { paymentStatus: string }) => order.paymentStatus !== "PAID"
+      );
+
+      if (nextUnpaid?.orderId) {
+        setPendingChapaOrderId(nextUnpaid.orderId);
+        localStorage.setItem("beautymart-pending-chapa-order", nextUnpaid.orderId);
+        return;
+      }
+
+      if (orders.length > 0) {
+        setPendingChapaOrderId(null);
+        setCheckoutAttemptId(null);
+        localStorage.removeItem("beautymart-pending-chapa-order");
+        localStorage.removeItem("beautymart-checkout-attempt");
+        localStorage.removeItem("beautymart-checkout-idempotency-key");
+        localStorage.removeItem("beautymart-cart");
+        window.dispatchEvent(new Event("cartUpdated"));
+      }
+    })
+    .catch(() => {
+      // The persisted attempt remains available for a later safe retry.
+    });
+}, []);
+
 
 
 
@@ -94,17 +135,13 @@ const response = await fetch(statusUrl, {
     if (data?.status === "PAID") {
       localStorage.removeItem("beautymart-chapa-attempt-uncertain");
       localStorage.removeItem("beautymart-chapa-tx-ref");
-      localStorage.removeItem("beautymart-pending-chapa-order");
-      localStorage.removeItem("beautymart-cart");
 
       setChapaAttemptUncertain(false);
-      setPendingChapaOrderId(null);
-      setCart([]);
-
-      window.dispatchEvent(new Event("cartUpdated"));
 
       alert("Payment confirmed successfully.");
-      router.push("/products");
+      router.replace(
+        orderId ? `/orders/${orderId}` : "/orders"
+      );
       return;
     }
 
@@ -137,10 +174,10 @@ const response = await fetch(statusUrl, {
   }
 };
 
-const handlePlaceOrder = async () => {
+const handlePlaceOrder = async (startSeparateCheckout = false) => {
   if (isPlacingOrder) return;
 
-  if (chapaAttemptUncertain) {
+  if (chapaAttemptUncertain && !startSeparateCheckout) {
     alert(
       "The existing Chapa payment attempt has an uncertain status. " +
         "Check its status before trying again. Do not place another order."
@@ -156,14 +193,23 @@ const handlePlaceOrder = async () => {
   setIsPlacingOrder(true);
 
   try {
-    let orderId = pendingChapaOrderId;
+    let orderId = startSeparateCheckout ? null : pendingChapaOrderId;
 
     // Create an order only when there is no existing Chapa order to retry.
     if (!orderId) {
+      // A consciously separate cart checkout must use a new key. It creates
+      // a separate order and never overwrites the uncertain older payment.
+      const existingKey = startSeparateCheckout
+        ? null
+        : localStorage.getItem("beautymart-checkout-idempotency-key");
+      const idempotencyKey = existingKey || crypto.randomUUID();
+      localStorage.setItem("beautymart-checkout-idempotency-key", idempotencyKey);
+
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
         },
         body: JSON.stringify({
           items: cart,
@@ -183,9 +229,12 @@ const handlePlaceOrder = async () => {
         return;
       }
 
-      const order = data?.orders?.[0];
+      const checkout = data?.checkout;
+      const order = checkout?.orders?.find(
+        (candidate: { paymentStatus: string }) => candidate.paymentStatus !== "PAID"
+      );
 
-      if (!order?.orderId) {
+      if (!checkout?.checkoutAttemptId || !order?.orderId) {
         alert(
           "The order response did not include an order ID. " +
             "Check your orders before trying again."
@@ -194,6 +243,40 @@ const handlePlaceOrder = async () => {
       }
 
 orderId = order.orderId;
+
+      // Keep the exact cart lines in a separate local list while payment is
+      // pending. They must not appear in a later, unrelated checkout.
+      const awaitingOrders: { orderId: string; lines: CartItem[] }[] = checkout.orders
+        .filter((candidate: { orderId?: string; storeId?: string }) =>
+          typeof candidate.orderId === "string" && typeof candidate.storeId === "string"
+        )
+        .map((candidate: { orderId: string; storeId: string }) => ({
+          orderId: candidate.orderId,
+          lines: cart.filter((item) => item.storeId === candidate.storeId),
+        }));
+      const savedAwaiting = JSON.parse(
+        localStorage.getItem("beautymart-awaiting-payment-orders") || "[]"
+      ) as { orderId: string; lines: CartItem[] }[];
+      const nextAwaiting = [
+        ...savedAwaiting.filter(
+          (saved) => !awaitingOrders.some((created: { orderId: string }) => created.orderId === saved.orderId)
+        ),
+        ...awaitingOrders,
+      ];
+      localStorage.setItem(
+        "beautymart-awaiting-payment-orders",
+        JSON.stringify(nextAwaiting)
+      );
+      const remainingCart = subtractPaidOrderItems(
+        cart,
+        awaitingOrders.flatMap((pending: { orderId: string; lines: CartItem[] }) => pending.lines)
+      );
+      setCart(remainingCart);
+      localStorage.setItem("beautymart-cart", JSON.stringify(remainingCart));
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      setCheckoutAttemptId(checkout.checkoutAttemptId);
+      localStorage.setItem("beautymart-checkout-attempt", checkout.checkoutAttemptId);
 
 if (paymentMethod === "Chapa") {
   // The order ID has been validated above.
@@ -221,6 +304,26 @@ if (paymentMethod === "Chapa") {
 const chapaData = await chapaResponse.json().catch(() => null);
 const txRef =
   chapaData?.transactionReference ?? chapaData?.txRef;
+
+// HTTP 202 means the server could not determine whether Chapa accepted the
+// initialization request. It is deliberately not an error/retry signal: a
+// second request could create a second charge. Preserve the original order
+// and guide the customer to server-side status recovery instead.
+if (chapaResponse.status === 202) {
+  setChapaAttemptUncertain(true);
+  localStorage.setItem("beautymart-chapa-attempt-uncertain", "true");
+
+  if (typeof txRef === "string" && txRef.length > 0) {
+    localStorage.setItem("beautymart-chapa-tx-ref", txRef);
+  }
+
+  alert(
+    (chapaData?.message ||
+      "We could not confirm whether Chapa started this payment.") +
+      "\n\nYour order is preserved. Do not pay again yet. Use Check payment status so BeautyMart can verify the original attempt with Chapa."
+  );
+  return;
+}
 
 if (!chapaResponse.ok) {
   // Only allow a retry when the server confirms the failed
@@ -308,10 +411,9 @@ window.location.assign(checkoutUrl);
 return;
 }
 
-// Preserve existing behavior for non-Chapa payments.
-localStorage.removeItem("beautymart-cart");
-window.dispatchEvent(new Event("cartUpdated"));
-router.push("/products");
+  // All enabled checkout payments are verified Chapa payments. Do not clear
+  // cart state until every independent store order is paid.
+  return;
 }  catch (error) {
   console.error("Place order error:", error);
 
@@ -580,51 +682,25 @@ if (cart.length === 0 && !pendingChapaOrderId) {
                   <input
   type="radio"
   name="payment"
-  value="Telebirr"
-  checked={paymentMethod === "Telebirr"}
-  onChange={(e) => setPaymentMethod(e.target.value)}
-/>
-
-                    <div>
-                      <strong>Telebirr</strong>
-                      <span>
-                        Pay securely using Telebirr
-                      </span>
-                    </div>
-                  </label>
-
-                  <label className="payment-option">
-                   <input
-  type="radio"
-  name="payment"
   value="Chapa"
   checked={paymentMethod === "Chapa"}
   onChange={(e) => setPaymentMethod(e.target.value)}
 />
 
                     <div>
-                      <strong>Chapa</strong>
+                        <strong>Chapa checkout</strong>
                       <span>
-                        Pay using a supported Chapa method
+                         Continue to Chapa to choose an available payment method
                       </span>
                     </div>
                   </label>
 
-                  <label className="payment-option">
-                  <input
-  type="radio"
-  name="payment"
-  value="Bank"
-  checked={paymentMethod === "Bank"}
-  onChange={(e) => setPaymentMethod(e.target.value)}
-/>
-                    <div>
-                      <strong>Bank payment</strong>
-                      <span>
-                        Use a supported bank payment option
-                      </span>
-                    </div>
-                  </label>
+                  <p className="checkout-note">
+                    Chapa securely shows only the payment options enabled for
+                    BeautyMart, such as Telebirr or supported bank methods.
+                    BeautyMart verifies the result with Chapa before an order
+                    is marked paid.
+                  </p>
 
                 </div>
               </div>
@@ -635,6 +711,20 @@ if (cart.length === 0 && !pendingChapaOrderId) {
             {/* ORDER SUMMARY */}
 
             <aside className="checkout-summary">
+
+              {chapaAttemptUncertain && pendingChapaOrderId && (
+                <div className="checkout-payment-recovery" role="alert">
+                  <strong>Existing payment needs verification</strong>
+                  <p>
+                    Your current bag may be different from the order already
+                    sent to Chapa. Do not pay this bag again until BeautyMart
+                    verifies that existing payment attempt.
+                  </p>
+                  <Link href={`/orders/${pendingChapaOrderId}`}>
+                    Open existing order
+                  </Link>
+                </div>
+              )}
 
               <p className="section-eyebrow">
                 YOUR ORDER
@@ -711,28 +801,48 @@ if (cart.length === 0 && !pendingChapaOrderId) {
   {!isPlacingOrder && <span>→</span>}
 </button> */}
 {chapaAttemptUncertain && (
-  <button
-    type="button"
-    className="place-order-button"
-    onClick={handleCheckChapaStatus}
-    disabled={isPlacingOrder}
-  >
-    {isPlacingOrder ? "Checking..." : "Check payment status"}
-  </button>
+  <div className="checkout-recovery-actions">
+    <button
+      type="button"
+      className="place-order-button"
+      onClick={handleCheckChapaStatus}
+      disabled={isPlacingOrder}
+    >
+      {isPlacingOrder ? "Checking..." : "Check existing payment status"}
+    </button>
+    {pendingChapaOrderId && (
+      <Link href={`/orders/${pendingChapaOrderId}`} className="checkout-recovery-link">
+        View existing order
+      </Link>
+    )}
+    <button
+      type="button"
+      className="checkout-separate-payment-button"
+      onClick={() => {
+        const confirmed = window.confirm(
+          "Start a separate checkout for the current bag? This does not cancel the older pending order. Only continue if this bag is intentionally different."
+        );
+        if (confirmed) void handlePlaceOrder(true);
+      }}
+      disabled={isPlacingOrder}
+    >
+      Pay for this updated bag separately
+    </button>
+  </div>
 )}
 
 {!chapaAttemptUncertain && (
   <button
     type="button"
     className="place-order-button"
-    onClick={handlePlaceOrder}
+    onClick={() => void handlePlaceOrder()}
     disabled={isPlacingOrder}
   >
     {isPlacingOrder
       ? "Processing..."
       : pendingChapaOrderId
-        ? "Retry payment"
-        : "Place order"}
+        ? "Continue to Chapa"
+        : "Continue to Chapa"}
     {!isPlacingOrder && <span>→</span>}
   </button>
 )}

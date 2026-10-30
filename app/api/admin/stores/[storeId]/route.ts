@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../../../lib/prisma";
+import { getActiveRequestUser } from "../../../../../lib/request-auth";
 
 const allowedStatuses = ["ACTIVE", "INACTIVE", "SUSPENDED"] as const;
 
@@ -11,12 +11,9 @@ export async function PATCH(
   { params }: { params: Promise<{ storeId: string }> }
 ) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token || token.role !== "SUPER_ADMIN") {
+    if (!user || user.role !== "SUPER_ADMIN") {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -132,12 +129,9 @@ export async function GET(
   { params }: { params: Promise<{ storeId: string }> }
 ) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token || token.role !== "SUPER_ADMIN") {
+    if (!user || user.role !== "SUPER_ADMIN") {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }

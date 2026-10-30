@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import "./analytics.css";
 
 type AnalyticsData = {
@@ -93,7 +94,8 @@ export default function AdminAnalyticsPage() {
   }, [period]);
 
   useEffect(() => {
-    void loadAnalytics();
+    const timer = window.setTimeout(() => void loadAnalytics(), 0);
+    return () => window.clearTimeout(timer);
   }, [loadAnalytics]);
 
   const overview = data?.overview;
@@ -373,9 +375,9 @@ export default function AdminAnalyticsPage() {
                 <p>TRANSACTION ACTIVITY</p>
                 <h3>Recent orders</h3>
               </div>
-              <a href="/admin/orders" className="analytics-view-all">
+              <Link href="/admin/orders" className="analytics-view-all">
                 View all orders →
-              </a>
+              </Link>
             </div>
 
             {data.recentOrders.length === 0 ? (

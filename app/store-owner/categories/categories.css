@@ -427,6 +427,13 @@
   font-size: 10px;
 }
 
+.categories-page .category-card-actions { display: inline-flex; gap: 8px; }
+.categories-page .category-card-actions button { min-height: 32px; border-radius: 8px; padding: 0 11px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; transition: 0.2s ease; }
+.categories-page .category-action-edit { border: 1px solid #d9c8cf; background: #fff; color: #7d4050; }
+.categories-page .category-action-edit:hover { border-color: #8b4b5a; background: #f9eff2; }
+.categories-page .category-action-delete { border: 1px solid #f0c9c7; background: #fff5f4; color: #a52c2c; }
+.categories-page .category-action-delete:hover { background: #fee9e7; }
+
 .categories-page .category-list-footnote {
   display: flex;
   align-items: center;
@@ -555,6 +562,9 @@
   .categories-page .category-list-footnote {
     margin: 0 13px 13px;
   }
+
+  .categories-page .category-card-footer { align-items: center; gap: 10px; }
+  .categories-page .category-card-actions { flex-wrap: wrap; justify-content: flex-end; }
 }
 
 @media (max-width: 380px) {

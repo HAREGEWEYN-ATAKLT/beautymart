@@ -1,28 +1,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../lib/prisma";
-
-async function getAuthenticatedUser(request: NextRequest) {
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-
-  if (!token?.id) {
-    return null;
-  }
-
-  return {
-    userId: String(token.id),
-    role: String(token.role ?? ""),
-  };
-}
+import { getActiveRequestUser } from "../../../lib/request-auth";
 
 // GET: Return only the signed-in user's notifications.
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser(request);
+    const user = await getActiveRequestUser(request);
 
     if (!user) {
       return NextResponse.json(
@@ -41,6 +25,7 @@ export async function GET(request: NextRequest) {
           title: true,
           message: true,
           notificationType: true,
+          deduplicationKey: true,
           isRead: true,
           createdAt: true,
         },
@@ -70,7 +55,7 @@ export async function GET(request: NextRequest) {
 // PATCH: Mark one notification or all of the user's notifications as read.
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser(request);
+    const user = await getActiveRequestUser(request);
 
     if (!user) {
       return NextResponse.json(

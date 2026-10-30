@@ -78,6 +78,16 @@ export type Address = Prisma.AddressModel
  */
 export type Order = Prisma.OrderModel
 /**
+ * Model CancellationRequest
+ * 
+ */
+export type CancellationRequest = Prisma.CancellationRequestModel
+/**
+ * Model CheckoutAttempt
+ * 
+ */
+export type CheckoutAttempt = Prisma.CheckoutAttemptModel
+/**
  * Model OrderItem
  * 
  */

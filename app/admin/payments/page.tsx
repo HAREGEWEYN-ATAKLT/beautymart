@@ -119,7 +119,8 @@ export default function AdminPaymentsPage() {
   }, [search, status, provider]);
 
   useEffect(() => {
-    void loadPayments();
+    const timer = window.setTimeout(() => void loadPayments(), 0);
+    return () => window.clearTimeout(timer);
   }, [loadPayments]);
 
   return (

@@ -1,24 +1,8 @@
-import { prisma } from "../../../lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  try {
-    const userCount = await prisma.user.count();
-
-    return NextResponse.json({
-      success: true,
-      message: "Database connection is working!",
-      userCount,
-    });
-  } catch (error) {
-    console.error("Database connection error:", error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Database connection failed.",
-      },
-      { status: 500 }
-    );
-  }
+  // This old development endpoint used to disclose database health and the
+  // number of users to anyone on the internet. Keep the route harmless until
+  // it can be removed in a planned deployment.
+  return NextResponse.json({ error: "Not found." }, { status: 404 });
 }

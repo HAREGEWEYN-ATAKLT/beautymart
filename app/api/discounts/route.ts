@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../lib/prisma";
+import { getActiveRequestUser } from "../../../lib/request-auth";
+import { getStoreManagementBlockReason } from "../../../lib/store-management-access";
 
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
       );
     }
 
-    if (token.role !== "STORE_OWNER") {
+    if (user.role !== "STORE_OWNER") {
       return NextResponse.json(
         { message: "Only Store Owners can access discounts." },
         { status: 403 }
@@ -26,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const stores = await prisma.store.findMany({
       where: {
-        ownerId: String(token.id),
+        ownerId: user.userId,
       },
       select: {
         storeId: true,
@@ -71,20 +68,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
       );
     }
 
-    if (token.role !== "STORE_OWNER") {
+    if (user.role !== "STORE_OWNER") {
       return NextResponse.json(
         { message: "Only Store Owners can create discounts." },
         { status: 403 }
@@ -166,10 +159,11 @@ export async function POST(request: NextRequest) {
    const store = await prisma.store.findFirst({
   where: {
     storeId: String(storeId),
-    ownerId: String(token.id),
+    ownerId: user.userId,
   },
   select: {
     storeId: true,
+    status: true,
     subscription: {
       select: {
         status: true,
@@ -186,19 +180,10 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
-    const subscription = store.subscription;
-
-if (
-  !subscription ||
-  subscription.status !== "ACTIVE" ||
-  !subscription.isActive ||
-  subscription.endDate <= new Date()
-) {
+    const managementBlock = getStoreManagementBlockReason(store);
+    if (managementBlock) {
   return NextResponse.json(
-    {
-      message:
-        "Your store subscription is inactive or expired. Renew or restore your subscription to manage discounts.",
-    },
+    { message: managementBlock },
     { status: 403 }
   );
 }
@@ -274,5 +259,51 @@ if (
       { message: "Something went wrong while creating the discount." },
       { status: 500 }
     );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getActiveRequestUser(request);
+    if (!user) {
+      return NextResponse.json({ message: "You must be logged in." }, { status: 401 });
+    }
+    if (user.role !== "STORE_OWNER") {
+      return NextResponse.json({ message: "Only store owners can manage discounts." }, { status: 403 });
+    }
+
+    const body = await request.json();
+    if (typeof body.discountId !== "string" || typeof body.isActive !== "boolean") {
+      return NextResponse.json(
+        { message: "A discount ID and active status are required." },
+        { status: 400 }
+      );
+    }
+
+    const discount = await prisma.discount.findFirst({
+      where: { discountId: body.discountId, store: { ownerId: user.userId } },
+      include: { store: { include: { subscription: true } } },
+    });
+    if (!discount) {
+      // Do not reveal whether another store owns this discount.
+      return NextResponse.json({ message: "Discount not found." }, { status: 404 });
+    }
+
+    const managementBlock = getStoreManagementBlockReason(discount.store);
+    if (managementBlock) {
+      return NextResponse.json({ message: managementBlock }, { status: 403 });
+    }
+
+    const updated = await prisma.discount.update({
+      where: { discountId: discount.discountId },
+      data: { isActive: body.isActive },
+    });
+    return NextResponse.json({
+      message: body.isActive ? "Discount activated." : "Discount deactivated.",
+      discount: updated,
+    });
+  } catch (error) {
+    console.error("Update discount error:", error);
+    return NextResponse.json({ message: "Failed to update discount." }, { status: 500 });
   }
 }

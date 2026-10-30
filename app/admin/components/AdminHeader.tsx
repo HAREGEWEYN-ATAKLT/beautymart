@@ -193,7 +193,6 @@ const pageNames: Record<string, string> = {
   "/admin/subscriptions": "Subscriptions",
   "/admin/analytics": "Analytics",
   "/admin/notifications": "Notifications",
-  "/admin/settings": "Settings",
 };
 
 const notificationIcons: Record<NotificationType, string> = {
@@ -267,17 +266,24 @@ export default function AdminHeader() {
   }, []);
 
   useEffect(() => {
-    void refreshNotifications();
+    const initialTimer = window.setTimeout(
+      () => void refreshNotifications(),
+      0
+    );
 
     const intervalId = window.setInterval(() => {
       void refreshNotifications();
     }, 30000);
 
-    return () => window.clearInterval(intervalId);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(intervalId);
+    };
   }, [refreshNotifications]);
 
   useEffect(() => {
-    void refreshNotifications();
+    const timer = window.setTimeout(() => void refreshNotifications(), 0);
+    return () => window.clearTimeout(timer);
   }, [pathname, refreshNotifications]);
 
   function openNotificationsPage(notificationId?: string) {

@@ -450,6 +450,25 @@ type Subscription = {
   isActive: boolean;
   isExpired: boolean;
   createdAt: string;
+  latestPayment: {
+    amount: number;
+    currency: string;
+    status: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+    provider: string;
+    paidAt: string | null;
+    createdAt: string;
+  } | null;
+  paymentHistory: {
+    subscriptionPaymentId: string;
+    planType: string;
+    amount: number;
+    currency: string;
+    status: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+    provider: string;
+    transactionReference: string | null;
+    paidAt: string | null;
+    createdAt: string;
+  }[];
 
   store: {
     storeId: string;
@@ -583,6 +602,8 @@ export default function AdminSubscriptionsPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedPaymentSubscription, setSelectedPaymentSubscription] =
+    useState<Subscription | null>(null);
 const [updatingSubscriptionId, setUpdatingSubscriptionId] =
   useState<string | null>(null);
   async function loadSubscriptions() {
@@ -678,7 +699,8 @@ async function updateSubscription(
   }
 }
   useEffect(() => {
-    loadSubscriptions();
+    const timer = window.setTimeout(() => void loadSubscriptions(), 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   return (
@@ -855,6 +877,7 @@ async function updateSubscription(
                   <th>End Date</th>
                   <th>Store Status</th>
                   <th>Subscription</th>
+                  <th>Latest plan payment</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -933,6 +956,22 @@ async function updateSubscription(
                       </span>
                     </td>
 
+                    <td>
+                      {subscription.latestPayment ? (
+                        <button
+                          type="button"
+                          className="admin-subscription-payment-button"
+                          onClick={() => setSelectedPaymentSubscription(subscription)}
+                        >
+                          <strong>{subscription.latestPayment.amount.toLocaleString()} {subscription.latestPayment.currency}</strong>
+                          <span>{subscription.latestPayment.provider} · {subscription.latestPayment.status}</span>
+                          <small>View payment details</small>
+                        </button>
+                      ) : (
+                        <span>Trial — no payment</span>
+                      )}
+                    </td>
+
                     {/* Actions */}
                     
 <td>
@@ -993,6 +1032,30 @@ async function updateSubscription(
           </div>
         )}
       </section>
+
+      {selectedPaymentSubscription && (
+        <div className="admin-payment-dialog-backdrop" role="presentation">
+          <section className="admin-payment-dialog" role="dialog" aria-modal="true" aria-labelledby="subscription-payment-title">
+            <div className="admin-payment-dialog-header">
+              <div>
+                <p>SUBSCRIPTION PAYMENT DETAILS</p>
+                <h2 id="subscription-payment-title">{selectedPaymentSubscription.store.storeName}</h2>
+                <span>{selectedPaymentSubscription.owner.fullName} · {getPlanLabel(selectedPaymentSubscription.planType)}</span>
+              </div>
+              <button type="button" onClick={() => setSelectedPaymentSubscription(null)} aria-label="Close payment details">×</button>
+            </div>
+            <p className="admin-payment-dialog-note">Read-only payment records. A pending payment is not proof of payment; only Chapa server verification can mark it paid.</p>
+            <div className="admin-payment-dialog-list">
+              {selectedPaymentSubscription.paymentHistory.map((payment) => (
+                <article key={payment.subscriptionPaymentId}>
+                  <div><strong>{payment.planType} · {payment.amount.toLocaleString()} {payment.currency}</strong><span className={`admin-subscription-status ${payment.status.toLowerCase()}`}>{payment.status}</span></div>
+                  <dl><div><dt>Provider</dt><dd>{payment.provider}</dd></div><div><dt>Started</dt><dd>{formatDate(payment.createdAt)}</dd></div><div><dt>Confirmed</dt><dd>{payment.paidAt ? formatDate(payment.paidAt) : "Not confirmed"}</dd></div><div><dt>Reference</dt><dd>{payment.transactionReference || "Not assigned"}</dd></div></dl>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Management rules */}
       <section className="admin-subscription-management-card">

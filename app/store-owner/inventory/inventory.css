@@ -198,3 +198,21 @@
   background: #edf7ef;
   color: #28753a;
 }
+
+.inventory-status-inactive {
+  background: #f1eeee;
+  color: #665d59;
+}
+
+.inventory-edit-link {
+  display: inline-flex;
+  align-items: center;
+  color: #6f2d3a;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.inventory-edit-link:hover {
+  text-decoration: underline;
+}

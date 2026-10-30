@@ -14,8 +14,11 @@ type CartItem = {
   quantity: number;
 };
 
+type AwaitingPaymentOrder = { orderId: string; lines: CartItem[] };
+
 export default function CartPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [awaitingOrders, setAwaitingOrders] = useState<AwaitingPaymentOrder[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -23,6 +26,11 @@ export default function CartPage() {
 
     if (savedCart) {
       setCart(JSON.parse(savedCart));
+    }
+
+    const savedAwaiting = localStorage.getItem("beautymart-awaiting-payment-orders");
+    if (savedAwaiting) {
+      setAwaitingOrders(JSON.parse(savedAwaiting));
     }
 
     setLoaded(true);
@@ -65,7 +73,7 @@ export default function CartPage() {
     );
   }
 
-  if (cart.length === 0) {
+  if (cart.length === 0 && awaitingOrders.length === 0) {
     return (
       <main className="cart-page">
         <section className="cart-empty">
@@ -119,7 +127,12 @@ export default function CartPage() {
                 </span>
               </div>
 
-              {cart.map((item) => (
+              {cart.length === 0 ? (
+                <div className="cart-awaiting-payment">
+                  <strong>Your bag is ready for new products.</strong>
+                  <span>Items awaiting payment are listed below and are not included in a new checkout.</span>
+                </div>
+              ) : cart.map((item) => (
                 <div className="cart-item" key={item.id}>
                   <Link
                     href={`/products/${item.id}`}
@@ -183,6 +196,36 @@ export default function CartPage() {
                   </strong>
                 </div>
               ))}
+
+              {awaitingOrders.length > 0 && (
+                <section className="cart-awaiting-payment">
+                  <div className="cart-awaiting-payment-heading">
+                    <span className="cart-awaiting-payment-icon" aria-hidden="true">!</span>
+                    <div>
+                      <p className="section-eyebrow">AWAITING PAYMENT</p>
+                      <h2>Orders awaiting Chapa verification</h2>
+                    </div>
+                    <span className="cart-awaiting-payment-count" aria-label={`${awaitingOrders.length} orders awaiting payment`}>
+                      {awaitingOrders.length}
+                    </span>
+                  </div>
+                  <p className="cart-awaiting-payment-description">
+                    These items are safely separated from your new cart. Open an order to check its payment status before paying again.
+                  </p>
+                  {awaitingOrders.map((pending) => (
+                    <div className="cart-awaiting-order" key={pending.orderId}>
+                      <div className="cart-awaiting-order-details">
+                        <span className="cart-awaiting-order-label">Payment needs checking</span>
+                        <strong>{pending.lines.map((item) => `${item.name} × ${item.quantity}`).join(", ")}</strong>
+                        <span className="cart-awaiting-order-total">{pending.lines.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()} ETB</span>
+                      </div>
+                      <Link href={`/orders/${pending.orderId}`} className="cart-awaiting-order-action">
+                        View order <span aria-hidden="true">→</span>
+                      </Link>
+                    </div>
+                  ))}
+                </section>
+              )}
             </div>
 
             <aside className="cart-summary">
@@ -207,10 +250,17 @@ export default function CartPage() {
                 <strong>{total.toLocaleString()} ETB</strong>
               </div>
 
-              <Link href="/checkout" className="checkout-button">
-                Continue to checkout
-                <span>→</span>
-              </Link>
+              {cart.length > 0 ? (
+                <Link href="/checkout" className="checkout-button">
+                  Continue to checkout
+                  <span>→</span>
+                </Link>
+              ) : (
+                <Link href="/products" className="checkout-button">
+                  Add new products
+                  <span>→</span>
+                </Link>
+              )}
 
               <Link href="/products" className="continue-shopping">
                 ← Continue shopping

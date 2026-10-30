@@ -193,6 +193,8 @@ export type CustomerWhereInput = {
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   addresses?: Prisma.AddressListRelationFilter
   orders?: Prisma.OrderListRelationFilter
+  checkoutAttempts?: Prisma.CheckoutAttemptListRelationFilter
+  cancellationRequests?: Prisma.CancellationRequestListRelationFilter
 }
 
 export type CustomerOrderByWithRelationInput = {
@@ -205,6 +207,8 @@ export type CustomerOrderByWithRelationInput = {
   user?: Prisma.UserOrderByWithRelationInput
   addresses?: Prisma.AddressOrderByRelationAggregateInput
   orders?: Prisma.OrderOrderByRelationAggregateInput
+  checkoutAttempts?: Prisma.CheckoutAttemptOrderByRelationAggregateInput
+  cancellationRequests?: Prisma.CancellationRequestOrderByRelationAggregateInput
 }
 
 export type CustomerWhereUniqueInput = Prisma.AtLeast<{
@@ -220,6 +224,8 @@ export type CustomerWhereUniqueInput = Prisma.AtLeast<{
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   addresses?: Prisma.AddressListRelationFilter
   orders?: Prisma.OrderListRelationFilter
+  checkoutAttempts?: Prisma.CheckoutAttemptListRelationFilter
+  cancellationRequests?: Prisma.CancellationRequestListRelationFilter
 }, "customerId" | "userId">
 
 export type CustomerOrderByWithAggregationInput = {
@@ -255,6 +261,8 @@ export type CustomerCreateInput = {
   user: Prisma.UserCreateNestedOneWithoutCustomerInput
   addresses?: Prisma.AddressCreateNestedManyWithoutCustomerInput
   orders?: Prisma.OrderCreateNestedManyWithoutCustomerInput
+  checkoutAttempts?: Prisma.CheckoutAttemptCreateNestedManyWithoutCustomerInput
+  cancellationRequests?: Prisma.CancellationRequestCreateNestedManyWithoutCustomerInput
 }
 
 export type CustomerUncheckedCreateInput = {
@@ -266,6 +274,8 @@ export type CustomerUncheckedCreateInput = {
   createdAt?: Date | string
   addresses?: Prisma.AddressUncheckedCreateNestedManyWithoutCustomerInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutCustomerInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUncheckedCreateNestedManyWithoutCustomerInput
+  cancellationRequests?: Prisma.CancellationRequestUncheckedCreateNestedManyWithoutCustomerInput
 }
 
 export type CustomerUpdateInput = {
@@ -277,6 +287,8 @@ export type CustomerUpdateInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutCustomerNestedInput
   addresses?: Prisma.AddressUpdateManyWithoutCustomerNestedInput
   orders?: Prisma.OrderUpdateManyWithoutCustomerNestedInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUpdateManyWithoutCustomerNestedInput
+  cancellationRequests?: Prisma.CancellationRequestUpdateManyWithoutCustomerNestedInput
 }
 
 export type CustomerUncheckedUpdateInput = {
@@ -288,6 +300,8 @@ export type CustomerUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   addresses?: Prisma.AddressUncheckedUpdateManyWithoutCustomerNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutCustomerNestedInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUncheckedUpdateManyWithoutCustomerNestedInput
+  cancellationRequests?: Prisma.CancellationRequestUncheckedUpdateManyWithoutCustomerNestedInput
 }
 
 export type CustomerCreateManyInput = {
@@ -413,6 +427,34 @@ export type CustomerUpdateOneRequiredWithoutOrdersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CustomerUpdateToOneWithWhereWithoutOrdersInput, Prisma.CustomerUpdateWithoutOrdersInput>, Prisma.CustomerUncheckedUpdateWithoutOrdersInput>
 }
 
+export type CustomerCreateNestedOneWithoutCancellationRequestsInput = {
+  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCancellationRequestsInput, Prisma.CustomerUncheckedCreateWithoutCancellationRequestsInput>
+  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCancellationRequestsInput
+  connect?: Prisma.CustomerWhereUniqueInput
+}
+
+export type CustomerUpdateOneRequiredWithoutCancellationRequestsNestedInput = {
+  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCancellationRequestsInput, Prisma.CustomerUncheckedCreateWithoutCancellationRequestsInput>
+  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCancellationRequestsInput
+  upsert?: Prisma.CustomerUpsertWithoutCancellationRequestsInput
+  connect?: Prisma.CustomerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CustomerUpdateToOneWithWhereWithoutCancellationRequestsInput, Prisma.CustomerUpdateWithoutCancellationRequestsInput>, Prisma.CustomerUncheckedUpdateWithoutCancellationRequestsInput>
+}
+
+export type CustomerCreateNestedOneWithoutCheckoutAttemptsInput = {
+  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCheckoutAttemptsInput, Prisma.CustomerUncheckedCreateWithoutCheckoutAttemptsInput>
+  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCheckoutAttemptsInput
+  connect?: Prisma.CustomerWhereUniqueInput
+}
+
+export type CustomerUpdateOneRequiredWithoutCheckoutAttemptsNestedInput = {
+  create?: Prisma.XOR<Prisma.CustomerCreateWithoutCheckoutAttemptsInput, Prisma.CustomerUncheckedCreateWithoutCheckoutAttemptsInput>
+  connectOrCreate?: Prisma.CustomerCreateOrConnectWithoutCheckoutAttemptsInput
+  upsert?: Prisma.CustomerUpsertWithoutCheckoutAttemptsInput
+  connect?: Prisma.CustomerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CustomerUpdateToOneWithWhereWithoutCheckoutAttemptsInput, Prisma.CustomerUpdateWithoutCheckoutAttemptsInput>, Prisma.CustomerUncheckedUpdateWithoutCheckoutAttemptsInput>
+}
+
 export type CustomerCreateWithoutUserInput = {
   customerId?: string
   fullName: string
@@ -421,6 +463,8 @@ export type CustomerCreateWithoutUserInput = {
   createdAt?: Date | string
   addresses?: Prisma.AddressCreateNestedManyWithoutCustomerInput
   orders?: Prisma.OrderCreateNestedManyWithoutCustomerInput
+  checkoutAttempts?: Prisma.CheckoutAttemptCreateNestedManyWithoutCustomerInput
+  cancellationRequests?: Prisma.CancellationRequestCreateNestedManyWithoutCustomerInput
 }
 
 export type CustomerUncheckedCreateWithoutUserInput = {
@@ -431,6 +475,8 @@ export type CustomerUncheckedCreateWithoutUserInput = {
   createdAt?: Date | string
   addresses?: Prisma.AddressUncheckedCreateNestedManyWithoutCustomerInput
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutCustomerInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUncheckedCreateNestedManyWithoutCustomerInput
+  cancellationRequests?: Prisma.CancellationRequestUncheckedCreateNestedManyWithoutCustomerInput
 }
 
 export type CustomerCreateOrConnectWithoutUserInput = {
@@ -457,6 +503,8 @@ export type CustomerUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   addresses?: Prisma.AddressUpdateManyWithoutCustomerNestedInput
   orders?: Prisma.OrderUpdateManyWithoutCustomerNestedInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUpdateManyWithoutCustomerNestedInput
+  cancellationRequests?: Prisma.CancellationRequestUpdateManyWithoutCustomerNestedInput
 }
 
 export type CustomerUncheckedUpdateWithoutUserInput = {
@@ -467,6 +515,8 @@ export type CustomerUncheckedUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   addresses?: Prisma.AddressUncheckedUpdateManyWithoutCustomerNestedInput
   orders?: Prisma.OrderUncheckedUpdateManyWithoutCustomerNestedInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUncheckedUpdateManyWithoutCustomerNestedInput
+  cancellationRequests?: Prisma.CancellationRequestUncheckedUpdateManyWithoutCustomerNestedInput
 }
 
 export type CustomerCreateWithoutAddressesInput = {
@@ -477,6 +527,8 @@ export type CustomerCreateWithoutAddressesInput = {
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCustomerInput
   orders?: Prisma.OrderCreateNestedManyWithoutCustomerInput
+  checkoutAttempts?: Prisma.CheckoutAttemptCreateNestedManyWithoutCustomerInput
+  cancellationRequests?: Prisma.CancellationRequestCreateNestedManyWithoutCustomerInput
 }
 
 export type CustomerUncheckedCreateWithoutAddressesInput = {
@@ -487,6 +539,8 @@ export type CustomerUncheckedCreateWithoutAddressesInput = {
   phoneNumber?: string | null
   createdAt?: Date | string
   orders?: Prisma.OrderUncheckedCreateNestedManyWithoutCustomerInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUncheckedCreateNestedManyWithoutCustomerInput
+  cancellationRequests?: Prisma.CancellationRequestUncheckedCreateNestedManyWithoutCustomerInput
 }
 
 export type CustomerCreateOrConnectWithoutAddressesInput = {
@@ -513,6 +567,8 @@ export type CustomerUpdateWithoutAddressesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCustomerNestedInput
   orders?: Prisma.OrderUpdateManyWithoutCustomerNestedInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUpdateManyWithoutCustomerNestedInput
+  cancellationRequests?: Prisma.CancellationRequestUpdateManyWithoutCustomerNestedInput
 }
 
 export type CustomerUncheckedUpdateWithoutAddressesInput = {
@@ -523,6 +579,8 @@ export type CustomerUncheckedUpdateWithoutAddressesInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   orders?: Prisma.OrderUncheckedUpdateManyWithoutCustomerNestedInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUncheckedUpdateManyWithoutCustomerNestedInput
+  cancellationRequests?: Prisma.CancellationRequestUncheckedUpdateManyWithoutCustomerNestedInput
 }
 
 export type CustomerCreateWithoutOrdersInput = {
@@ -533,6 +591,8 @@ export type CustomerCreateWithoutOrdersInput = {
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCustomerInput
   addresses?: Prisma.AddressCreateNestedManyWithoutCustomerInput
+  checkoutAttempts?: Prisma.CheckoutAttemptCreateNestedManyWithoutCustomerInput
+  cancellationRequests?: Prisma.CancellationRequestCreateNestedManyWithoutCustomerInput
 }
 
 export type CustomerUncheckedCreateWithoutOrdersInput = {
@@ -543,6 +603,8 @@ export type CustomerUncheckedCreateWithoutOrdersInput = {
   phoneNumber?: string | null
   createdAt?: Date | string
   addresses?: Prisma.AddressUncheckedCreateNestedManyWithoutCustomerInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUncheckedCreateNestedManyWithoutCustomerInput
+  cancellationRequests?: Prisma.CancellationRequestUncheckedCreateNestedManyWithoutCustomerInput
 }
 
 export type CustomerCreateOrConnectWithoutOrdersInput = {
@@ -569,6 +631,8 @@ export type CustomerUpdateWithoutOrdersInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCustomerNestedInput
   addresses?: Prisma.AddressUpdateManyWithoutCustomerNestedInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUpdateManyWithoutCustomerNestedInput
+  cancellationRequests?: Prisma.CancellationRequestUpdateManyWithoutCustomerNestedInput
 }
 
 export type CustomerUncheckedUpdateWithoutOrdersInput = {
@@ -579,6 +643,136 @@ export type CustomerUncheckedUpdateWithoutOrdersInput = {
   phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   addresses?: Prisma.AddressUncheckedUpdateManyWithoutCustomerNestedInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUncheckedUpdateManyWithoutCustomerNestedInput
+  cancellationRequests?: Prisma.CancellationRequestUncheckedUpdateManyWithoutCustomerNestedInput
+}
+
+export type CustomerCreateWithoutCancellationRequestsInput = {
+  customerId?: string
+  fullName: string
+  email?: string | null
+  phoneNumber?: string | null
+  createdAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutCustomerInput
+  addresses?: Prisma.AddressCreateNestedManyWithoutCustomerInput
+  orders?: Prisma.OrderCreateNestedManyWithoutCustomerInput
+  checkoutAttempts?: Prisma.CheckoutAttemptCreateNestedManyWithoutCustomerInput
+}
+
+export type CustomerUncheckedCreateWithoutCancellationRequestsInput = {
+  customerId?: string
+  userId: string
+  fullName: string
+  email?: string | null
+  phoneNumber?: string | null
+  createdAt?: Date | string
+  addresses?: Prisma.AddressUncheckedCreateNestedManyWithoutCustomerInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutCustomerInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUncheckedCreateNestedManyWithoutCustomerInput
+}
+
+export type CustomerCreateOrConnectWithoutCancellationRequestsInput = {
+  where: Prisma.CustomerWhereUniqueInput
+  create: Prisma.XOR<Prisma.CustomerCreateWithoutCancellationRequestsInput, Prisma.CustomerUncheckedCreateWithoutCancellationRequestsInput>
+}
+
+export type CustomerUpsertWithoutCancellationRequestsInput = {
+  update: Prisma.XOR<Prisma.CustomerUpdateWithoutCancellationRequestsInput, Prisma.CustomerUncheckedUpdateWithoutCancellationRequestsInput>
+  create: Prisma.XOR<Prisma.CustomerCreateWithoutCancellationRequestsInput, Prisma.CustomerUncheckedCreateWithoutCancellationRequestsInput>
+  where?: Prisma.CustomerWhereInput
+}
+
+export type CustomerUpdateToOneWithWhereWithoutCancellationRequestsInput = {
+  where?: Prisma.CustomerWhereInput
+  data: Prisma.XOR<Prisma.CustomerUpdateWithoutCancellationRequestsInput, Prisma.CustomerUncheckedUpdateWithoutCancellationRequestsInput>
+}
+
+export type CustomerUpdateWithoutCancellationRequestsInput = {
+  customerId?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutCustomerNestedInput
+  addresses?: Prisma.AddressUpdateManyWithoutCustomerNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutCustomerNestedInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUpdateManyWithoutCustomerNestedInput
+}
+
+export type CustomerUncheckedUpdateWithoutCancellationRequestsInput = {
+  customerId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  addresses?: Prisma.AddressUncheckedUpdateManyWithoutCustomerNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutCustomerNestedInput
+  checkoutAttempts?: Prisma.CheckoutAttemptUncheckedUpdateManyWithoutCustomerNestedInput
+}
+
+export type CustomerCreateWithoutCheckoutAttemptsInput = {
+  customerId?: string
+  fullName: string
+  email?: string | null
+  phoneNumber?: string | null
+  createdAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutCustomerInput
+  addresses?: Prisma.AddressCreateNestedManyWithoutCustomerInput
+  orders?: Prisma.OrderCreateNestedManyWithoutCustomerInput
+  cancellationRequests?: Prisma.CancellationRequestCreateNestedManyWithoutCustomerInput
+}
+
+export type CustomerUncheckedCreateWithoutCheckoutAttemptsInput = {
+  customerId?: string
+  userId: string
+  fullName: string
+  email?: string | null
+  phoneNumber?: string | null
+  createdAt?: Date | string
+  addresses?: Prisma.AddressUncheckedCreateNestedManyWithoutCustomerInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutCustomerInput
+  cancellationRequests?: Prisma.CancellationRequestUncheckedCreateNestedManyWithoutCustomerInput
+}
+
+export type CustomerCreateOrConnectWithoutCheckoutAttemptsInput = {
+  where: Prisma.CustomerWhereUniqueInput
+  create: Prisma.XOR<Prisma.CustomerCreateWithoutCheckoutAttemptsInput, Prisma.CustomerUncheckedCreateWithoutCheckoutAttemptsInput>
+}
+
+export type CustomerUpsertWithoutCheckoutAttemptsInput = {
+  update: Prisma.XOR<Prisma.CustomerUpdateWithoutCheckoutAttemptsInput, Prisma.CustomerUncheckedUpdateWithoutCheckoutAttemptsInput>
+  create: Prisma.XOR<Prisma.CustomerCreateWithoutCheckoutAttemptsInput, Prisma.CustomerUncheckedCreateWithoutCheckoutAttemptsInput>
+  where?: Prisma.CustomerWhereInput
+}
+
+export type CustomerUpdateToOneWithWhereWithoutCheckoutAttemptsInput = {
+  where?: Prisma.CustomerWhereInput
+  data: Prisma.XOR<Prisma.CustomerUpdateWithoutCheckoutAttemptsInput, Prisma.CustomerUncheckedUpdateWithoutCheckoutAttemptsInput>
+}
+
+export type CustomerUpdateWithoutCheckoutAttemptsInput = {
+  customerId?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutCustomerNestedInput
+  addresses?: Prisma.AddressUpdateManyWithoutCustomerNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutCustomerNestedInput
+  cancellationRequests?: Prisma.CancellationRequestUpdateManyWithoutCustomerNestedInput
+}
+
+export type CustomerUncheckedUpdateWithoutCheckoutAttemptsInput = {
+  customerId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phoneNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  addresses?: Prisma.AddressUncheckedUpdateManyWithoutCustomerNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutCustomerNestedInput
+  cancellationRequests?: Prisma.CancellationRequestUncheckedUpdateManyWithoutCustomerNestedInput
 }
 
 
@@ -589,11 +783,15 @@ export type CustomerUncheckedUpdateWithoutOrdersInput = {
 export type CustomerCountOutputType = {
   addresses: number
   orders: number
+  checkoutAttempts: number
+  cancellationRequests: number
 }
 
 export type CustomerCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   addresses?: boolean | CustomerCountOutputTypeCountAddressesArgs
   orders?: boolean | CustomerCountOutputTypeCountOrdersArgs
+  checkoutAttempts?: boolean | CustomerCountOutputTypeCountCheckoutAttemptsArgs
+  cancellationRequests?: boolean | CustomerCountOutputTypeCountCancellationRequestsArgs
 }
 
 /**
@@ -620,6 +818,20 @@ export type CustomerCountOutputTypeCountOrdersArgs<ExtArgs extends runtime.Types
   where?: Prisma.OrderWhereInput
 }
 
+/**
+ * CustomerCountOutputType without action
+ */
+export type CustomerCountOutputTypeCountCheckoutAttemptsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CheckoutAttemptWhereInput
+}
+
+/**
+ * CustomerCountOutputType without action
+ */
+export type CustomerCountOutputTypeCountCancellationRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CancellationRequestWhereInput
+}
+
 
 export type CustomerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   customerId?: boolean
@@ -631,6 +843,8 @@ export type CustomerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   addresses?: boolean | Prisma.Customer$addressesArgs<ExtArgs>
   orders?: boolean | Prisma.Customer$ordersArgs<ExtArgs>
+  checkoutAttempts?: boolean | Prisma.Customer$checkoutAttemptsArgs<ExtArgs>
+  cancellationRequests?: boolean | Prisma.Customer$cancellationRequestsArgs<ExtArgs>
   _count?: boolean | Prisma.CustomerCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["customer"]>
 
@@ -668,6 +882,8 @@ export type CustomerInclude<ExtArgs extends runtime.Types.Extensions.InternalArg
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   addresses?: boolean | Prisma.Customer$addressesArgs<ExtArgs>
   orders?: boolean | Prisma.Customer$ordersArgs<ExtArgs>
+  checkoutAttempts?: boolean | Prisma.Customer$checkoutAttemptsArgs<ExtArgs>
+  cancellationRequests?: boolean | Prisma.Customer$cancellationRequestsArgs<ExtArgs>
   _count?: boolean | Prisma.CustomerCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CustomerIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -683,6 +899,8 @@ export type $CustomerPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     user: Prisma.$UserPayload<ExtArgs>
     addresses: Prisma.$AddressPayload<ExtArgs>[]
     orders: Prisma.$OrderPayload<ExtArgs>[]
+    checkoutAttempts: Prisma.$CheckoutAttemptPayload<ExtArgs>[]
+    cancellationRequests: Prisma.$CancellationRequestPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     customerId: string
@@ -1088,6 +1306,8 @@ export interface Prisma__CustomerClient<T, Null = never, ExtArgs extends runtime
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   addresses<T extends Prisma.Customer$addressesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Customer$addressesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AddressPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   orders<T extends Prisma.Customer$ordersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Customer$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  checkoutAttempts<T extends Prisma.Customer$checkoutAttemptsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Customer$checkoutAttemptsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CheckoutAttemptPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  cancellationRequests<T extends Prisma.Customer$cancellationRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Customer$cancellationRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CancellationRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1569,6 +1789,54 @@ export type Customer$ordersArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.OrderScalarFieldEnum | Prisma.OrderScalarFieldEnum[]
+}
+
+/**
+ * Customer.checkoutAttempts
+ */
+export type Customer$checkoutAttemptsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CheckoutAttempt
+   */
+  select?: Prisma.CheckoutAttemptSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CheckoutAttempt
+   */
+  omit?: Prisma.CheckoutAttemptOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CheckoutAttemptInclude<ExtArgs> | null
+  where?: Prisma.CheckoutAttemptWhereInput
+  orderBy?: Prisma.CheckoutAttemptOrderByWithRelationInput | Prisma.CheckoutAttemptOrderByWithRelationInput[]
+  cursor?: Prisma.CheckoutAttemptWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CheckoutAttemptScalarFieldEnum | Prisma.CheckoutAttemptScalarFieldEnum[]
+}
+
+/**
+ * Customer.cancellationRequests
+ */
+export type Customer$cancellationRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CancellationRequest
+   */
+  select?: Prisma.CancellationRequestSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CancellationRequest
+   */
+  omit?: Prisma.CancellationRequestOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CancellationRequestInclude<ExtArgs> | null
+  where?: Prisma.CancellationRequestWhereInput
+  orderBy?: Prisma.CancellationRequestOrderByWithRelationInput | Prisma.CancellationRequestOrderByWithRelationInput[]
+  cursor?: Prisma.CancellationRequestWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CancellationRequestScalarFieldEnum | Prisma.CancellationRequestScalarFieldEnum[]
 }
 
 /**

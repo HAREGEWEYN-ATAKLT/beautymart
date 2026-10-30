@@ -9,6 +9,9 @@ export default defineConfig({
   },
 
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Production uses a direct database URL for Prisma CLI migrations and a
+    // pooled DATABASE_URL for the serverless application. Local development
+    // needs only DATABASE_URL, so it remains the safe fallback.
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });

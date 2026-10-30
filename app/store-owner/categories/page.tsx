@@ -581,6 +581,10 @@ export default function StoreOwnerCategoriesPage() {
                   </div>
                   <div className="category-card-footer">
                     <span>Category {String(index + 1).padStart(2, "0")}</span>
+                    <span className="category-card-actions">
+                      <button className="category-action-edit" type="button" onClick={async () => { const name = window.prompt("Category name", category.categoryName); if (!name?.trim()) return; const response = await fetch("/api/store-owner/categories", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ categoryId: category.categoryId, categoryName: name, description: category.description || "" }) }); const data = await response.json(); setMessage(data.message || "Unable to update category."); setMessageType(response.ok ? "success" : "error"); if (response.ok) await loadCategories(); }}>Edit</button>
+                      <button className="category-action-delete" type="button" onClick={async () => { if (!window.confirm(`Delete ${category.categoryName}?`)) return; const response = await fetch("/api/store-owner/categories", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ categoryId: category.categoryId }) }); const data = await response.json(); setMessage(data.message || "Unable to delete category."); setMessageType(response.ok ? "success" : "error"); if (response.ok) await loadCategories(); }}>Delete</button>
+                    </span>
                   </div>
                 </article>
               ))}

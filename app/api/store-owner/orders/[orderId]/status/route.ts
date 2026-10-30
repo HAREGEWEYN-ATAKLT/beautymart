@@ -139,8 +139,9 @@
 
 
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../../../../lib/prisma";
+import { getActiveRequestUser } from "../../../../../../lib/request-auth";
+import { getStoreManagementBlockReason } from "../../../../../../lib/store-management-access";
 
 const allowedStatuses = [
   "CONFIRMED",
@@ -154,20 +155,16 @@ export async function PATCH(
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user) {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
       );
     }
 
-    if (token.role !== "STORE_OWNER") {
+    if (user.role !== "STORE_OWNER") {
       return NextResponse.json(
         { message: "Only Store Owners can update orders." },
         { status: 403 }
@@ -197,7 +194,7 @@ export async function PATCH(
       where: {
         orderId,
         store: {
-          ownerId: String(token.id),
+          ownerId: user.userId,
         },
       },
       select: {
@@ -205,9 +202,12 @@ export async function PATCH(
         orderNumber: true,
         orderStatus: true,
         customerId: true,
+        paymentStatus: true,
+        customer: { select: { userId: true } },
         store: {
           select: {
             storeName: true,
+            status: true,
             subscription: {
               select: {
                 status: true,
@@ -227,20 +227,18 @@ export async function PATCH(
       );
     }
 
-    const subscription = existingOrder.store.subscription;
-
-    if (
-      !subscription ||
-      subscription.status !== "ACTIVE" ||
-      !subscription.isActive ||
-      subscription.endDate <= new Date()
-    ) {
+    const managementBlock = getStoreManagementBlockReason(existingOrder.store);
+    if (managementBlock) {
       return NextResponse.json(
-        {
-          message:
-            "Your store subscription is inactive or expired. Renew or restore your subscription to manage orders.",
-        },
+        { message: managementBlock },
         { status: 403 }
+      );
+    }
+
+    if (existingOrder.paymentStatus !== "PAID") {
+      return NextResponse.json(
+        { message: "An order cannot be fulfilled until its payment is verified." },
+        { status: 409 }
       );
     }
 
@@ -275,7 +273,7 @@ export async function PATCH(
 
         const notifications = [
           {
-            userId: existingOrder.customerId,
+            userId: existingOrder.customer.userId,
             title: `Order ${updatedOrder.orderStatus.toLowerCase()}`,
             message: statusMessages[updatedOrder.orderStatus],
             notificationType: "ORDER" as const,

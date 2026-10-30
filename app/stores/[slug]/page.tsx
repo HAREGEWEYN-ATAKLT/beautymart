@@ -292,6 +292,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "../../../lib/prisma";
+import HorizontalCarousel from "../../components/HorizontalCarousel";
 
 export const dynamic = "force-dynamic";
 
@@ -480,7 +481,10 @@ export default async function StorePage({
               <Link href="/products">Explore other products →</Link>
             </div>
           ) : (
-            <div className="store-products-grid">
+            <HorizontalCarousel
+              className="store-products-grid"
+              label={`${store.storeName} products`}
+            >
               {store.products.map((product) => {
                 const productImage = product.images[0]?.imageUrl;
 
@@ -524,7 +528,7 @@ export default async function StorePage({
                   </Link>
                 );
               })}
-            </div>
+            </HorizontalCarousel>
           )}
         </div>
       </section>

@@ -158,6 +158,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
+import CustomerNotifications from "./CustomerNotifications";
 
 type DropdownName = "shop" | "business" | null;
 
@@ -240,6 +241,7 @@ export default function Navbar() {
 
           {status === "authenticated" ? (
             <>
+              <CustomerNotifications />
               <Link href="/account" className="nav-user" onClick={closeMenu}>
                 Hi, {firstName || "there"}
               </Link>
@@ -327,6 +329,7 @@ export default function Navbar() {
 
           {status === "authenticated" ? (
             <>
+              <Link href="/notifications" onClick={closeMenu}>Notifications</Link>
               <Link href="/account" onClick={closeMenu}>My account{firstName ? ` (${firstName})` : ""}</Link>
               <button type="button" className="mobile-login-button" onClick={handleLogout}>
                 Logout

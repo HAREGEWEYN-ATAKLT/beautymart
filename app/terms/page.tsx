@@ -31,7 +31,7 @@ export default function TermsPage() {
           <p>
             Users must provide accurate information, protect their account
             credentials, and use the platform lawfully. Do not attempt to
-            access another person's account, disrupt the service, or misuse
+            access another person&apos;s account, disrupt the service, or misuse
             the marketplace.
           </p>
         </section>
@@ -62,7 +62,7 @@ export default function TermsPage() {
           <h2>4. Store subscriptions</h2>
           <p>
             Each eligible new store receives a one-month trial under the
-            platform's subscription rules. The Starter plan is 3,000 ETB for
+            platform&apos;s subscription rules. The Starter plan is 3,000 ETB for
             six months, and the Standard plan is 5,000 ETB for twelve months.
             A paid period starts when its payment is successfully verified;
             unused trial time is not added to the paid period.
@@ -70,7 +70,7 @@ export default function TermsPage() {
           <p>
             Store management may be restricted when a subscription expires or
             is suspended. Subscription restrictions apply to the affected
-            store, according to the platform's rules.
+            store, according to the platform&apos;s rules.
           </p>
           <p>
             Customers do not pay the store-owner subscription fee simply to
@@ -85,7 +85,7 @@ export default function TermsPage() {
           <h2>5. Payments, delivery, and cancellations</h2>
           <p>
             Customers should use the payment options displayed during checkout
-            and follow the provider's instructions. Payment and order statuses
+            and follow the provider&apos;s instructions. Payment and order statuses
             should be checked before assuming an order is paid or complete.
           </p>
           <p>

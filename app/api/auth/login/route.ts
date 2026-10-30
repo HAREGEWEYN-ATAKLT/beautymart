@@ -1,16 +1,22 @@
 import { prisma } from "../../../../lib/prisma";
 import argon2 from "argon2";
 import { NextResponse } from "next/server";
+import { isValidEmail, normalizeEmail } from "../../../../lib/account-validation";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body: unknown = await request.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json({ message: "Invalid email or password." }, { status: 400 });
+    }
+    const input = body as Record<string, unknown>;
 
-    const { email, password } = body;
+    const email = normalizeEmail(input.email);
+    const password = input.password;
 
-    if (!email || !password) {
+    if (!isValidEmail(email) || typeof password !== "string" || password.length > 1024) {
       return NextResponse.json(
-        { message: "Email and password are required." },
+        { message: "Invalid email or password." },
         { status: 400 }
       );
     }
@@ -28,12 +34,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!user.isActive) {
-      return NextResponse.json(
-        { message: "This account is inactive." },
-        { status: 403 }
-      );
-    }
+    if (!user.isActive) return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
 
     const passwordValid = await argon2.verify(
       user.passwordHash,
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login failed.");
 
     return NextResponse.json(
       { message: "Something went wrong while logging in." },

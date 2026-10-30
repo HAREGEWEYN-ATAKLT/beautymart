@@ -22,6 +22,9 @@ type Discount = {
 export default function DiscountsPage() {
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [updatingDiscountId, setUpdatingDiscountId] = useState<string | null>(null);
 const [showForm, setShowForm] = useState(false);
 const [discountName, setDiscountName] = useState("");
 const [discountType, setDiscountType] = useState<
@@ -44,9 +47,11 @@ const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
         if (response.ok && data.discounts) {
           setDiscounts(data.discounts);
+        } else {
+          setError(data.message || "Discounts could not be loaded.");
         }
-      } catch (error) {
-        console.error("Load discounts error:", error);
+      } catch {
+        setError("Discounts could not be loaded. Check your connection and try again.");
       } finally {
         setLoading(false);
       }
@@ -82,6 +87,36 @@ useEffect(() => {
 
   loadProducts();
 }, []);
+  const updateDiscountStatus = async (discount: Discount) => {
+    setMessage("");
+    setError("");
+    setUpdatingDiscountId(discount.discountId);
+    try {
+      const response = await fetch("/api/discounts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ discountId: discount.discountId, isActive: !discount.isActive }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.message || "The discount could not be updated.");
+        return;
+      }
+      setDiscounts((items) =>
+        items.map((item) =>
+          item.discountId === discount.discountId
+            ? { ...item, isActive: data.discount.isActive }
+            : item
+        )
+      );
+      setMessage(data.message);
+    } catch {
+      setError("The discount could not be updated. Check your connection and try again.");
+    } finally {
+      setUpdatingDiscountId(null);
+    }
+  };
+
   return (
    <main className="discounts-page">
       <div className="discounts-container">
@@ -114,35 +149,30 @@ useEffect(() => {
   + Create Discount
 </button>
         </div>
+       {message ? <p className="discounts-message" role="status">{message}</p> : null}
+       {error ? <p className="discounts-error" role="alert">{error}</p> : null}
 {showForm && (
-  <div
-    style={{
-      marginTop: "30px",
-      background: "#fff",
-      padding: "30px",
-      borderRadius: "16px",
-    }}
-  >
-    <h2 style={{ marginTop: 0 }}>Create Discount</h2>
+  <section className="discounts-form" aria-labelledby="create-discount-title">
+    <div className="discounts-form-heading">
+      <div>
+        <p className="discounts-form-eyebrow">New promotion</p>
+        <h2 id="create-discount-title">Create Discount</h2>
+      </div>
+      <button type="button" className="discounts-close-button" onClick={() => setShowForm(false)} aria-label="Close create discount form">×</button>
+    </div>
 
-   <div style={{ display: "grid", gap: "16px" }}>
-  <div>
+   <div className="discounts-form-grid">
+  <div className="discounts-field discounts-field-wide">
     <label>Discount Name</label>
     <input
       type="text"
       placeholder="e.g. Summer Beauty Sale"
       value={discountName}
 onChange={(event) => setDiscountName(event.target.value)}
-      style={{
-        display: "block",
-        width: "100%",
-        padding: "12px",
-        marginTop: "6px",
-      }}
     />
   </div>
 
-  <div>
+  <div className="discounts-field">
     <label>Discount Type</label>
     <select
     value={discountType}
@@ -151,12 +181,6 @@ onChange={(event) =>
     event.target.value as "PERCENTAGE" | "FIXED_AMOUNT"
   )
 }
-      style={{
-        display: "block",
-        width: "100%",
-        padding: "12px",
-        marginTop: "6px",
-      }}
       
     >
       <option value="PERCENTAGE">Percentage (%)</option>
@@ -164,7 +188,7 @@ onChange={(event) =>
     </select>
   </div>
 
-  <div>
+  <div className="discounts-field">
     <label>Discount Value</label>
     <input
       type="number"
@@ -172,63 +196,35 @@ onChange={(event) =>
       min="1"
       value={discountValue}
 onChange={(event) => setDiscountValue(event.target.value)}
-      style={{
-        display: "block",
-        width: "100%",
-        padding: "12px",
-        marginTop: "6px",
-      }}
     />
   </div>
 
-  <div>
+  <div className="discounts-field">
     <label>Start Date</label>
     <input
       type="date"
        value={startDate}
   onChange={(event) => setStartDate(event.target.value)}
-      style={{
-        display: "block",
-        width: "100%",
-        padding: "12px",
-        marginTop: "6px",
-      }}
     />
   </div>
 
-  <div>
+  <div className="discounts-field">
     <label>End Date</label>
     <input
       type="date"
        value={endDate}
   onChange={(event) => setEndDate(event.target.value)}
-      style={{
-        display: "block",
-        width: "100%",
-        padding: "12px",
-        marginTop: "6px",
-      }}
     />
   </div>
 
-  <div>
+  <div className="discounts-field discounts-field-wide">
   <label>Select Products</label>
 
-  <div
-    style={{
-      marginTop: "8px",
-      display: "grid",
-      gap: "10px",
-    }}
-  >
+  <div className="discounts-products">
     {products.map((product) => (
       <label
         key={product.productId}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
+        className="discounts-product-option"
       >
         <input
           type="checkbox"
@@ -255,6 +251,7 @@ onChange={(event) => setDiscountValue(event.target.value)}
   </div>
 </div>
 </div>
+<div className="discounts-form-actions">
 <button
   type="button"
   onClick={async () => {
@@ -263,7 +260,7 @@ onChange={(event) => setDiscountValue(event.target.value)}
       const storesData = await storesResponse.json();
 
       if (!storesResponse.ok || !storesData.stores?.length) {
-        alert("Store not found.");
+        setError("Store not found.");
         return;
       }
 
@@ -288,11 +285,12 @@ onChange={(event) => setDiscountValue(event.target.value)}
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message || "Failed to create discount.");
+        setError(data.message || "Failed to create discount.");
         return;
       }
 
-      alert("Discount created successfully.");
+      setError("");
+      setMessage("Discount created successfully.");
 
       setDiscounts((current) => [data.discount, ...current]);
       setShowForm(false);
@@ -303,30 +301,24 @@ onChange={(event) => setDiscountValue(event.target.value)}
       setStartDate("");
       setEndDate("");
       setSelectedProductIds([]);
-    } catch (error) {
-      console.error("Create discount error:", error);
-      alert("Something went wrong while creating the discount.");
+    } catch {
+      setError("Something went wrong while creating the discount.");
     }
   }}
->
+ className="discounts-submit-button">
   Create Discount
 </button>
     <button
       type="button"
       onClick={() => setShowForm(false)}
+      className="discounts-cancel-button"
     >
       Cancel
     </button>
   </div>
+  </section>
 )}
-        <div
-          style={{
-            marginTop: "30px",
-            background: "#fff",
-            borderRadius: "16px",
-            overflow: "hidden",
-          }}
-        >
+        <div className="discounts-table-card">
           {loading ? (
             <p style={{ padding: "30px" }}>
               Loading discounts...
@@ -358,55 +350,41 @@ onChange={(event) => setDiscountValue(event.target.value)}
               </p>
             </div>
           ) : (
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-              }}
-            >
+            <table className="discounts-table">
               <thead>
                 <tr>
-                  <th style={{ padding: "18px", textAlign: "left" }}>
-                    Discount
-                  </th>
+                  <th>Discount</th>
 
-                  <th style={{ padding: "18px", textAlign: "left" }}>
-                    Value
-                  </th>
+                  <th>Value</th>
 
-                  <th style={{ padding: "18px", textAlign: "left" }}>
-                    Products
-                  </th>
+                  <th>Products</th>
 
-                  <th style={{ padding: "18px", textAlign: "left" }}>
-                    Dates
-                  </th>
+                  <th>Dates</th>
 
-                  <th style={{ padding: "18px", textAlign: "left" }}>
-                    Status
-                  </th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
 
               <tbody>
                 {discounts.map((discount) => (
                   <tr key={discount.discountId}>
-                    <td style={{ padding: "18px" }}>
+                    <td>
                       <strong>{discount.name}</strong>
                     </td>
 
-                    <td style={{ padding: "18px" }}>
+                    <td>
                       {Number(discount.discountValue).toLocaleString()}
                       {discount.discountType === "PERCENTAGE"
                         ? "%"
                         : " ETB"}
                     </td>
 
-                    <td style={{ padding: "18px" }}>
+                    <td>
                       {discount.productDiscounts.length}
                     </td>
 
-                    <td style={{ padding: "18px" }}>
+                    <td>
                       {new Date(
                         discount.startDate
                       ).toLocaleDateString()}{" "}
@@ -416,10 +394,24 @@ onChange={(event) => setDiscountValue(event.target.value)}
                       ).toLocaleDateString()}
                     </td>
 
-                    <td style={{ padding: "18px" }}>
-                      {discount.isActive
-                        ? "Active"
-                        : "Inactive"}
+                    <td>
+                      <span className={discount.isActive ? "discount-status" : "discount-status discount-status-inactive"}>
+                        {discount.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className={discount.isActive ? "discount-action discount-action-deactivate" : "discount-action discount-action-activate"}
+                        onClick={() => void updateDiscountStatus(discount)}
+                        disabled={updatingDiscountId === discount.discountId}
+                      >
+                        {updatingDiscountId === discount.discountId
+                          ? "Saving..."
+                          : discount.isActive
+                            ? "Deactivate"
+                            : "Activate"}
+                      </button>
                     </td>
                   </tr>
                 ))}

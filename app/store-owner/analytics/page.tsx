@@ -30,6 +30,7 @@ type Order = {
   orderId: string;
   orderNumber: string;
   finalAmount: string | number;
+  paymentStatus: string;
   orderStatus: string;
   createdAt: string;
   customer: {
@@ -47,11 +48,14 @@ export default function AnalyticsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [period, setPeriod] = useState<Period>(7);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const loadAnalytics = async () => {
       try {
         setLoading(true);
+        setError("");
 
         const storesResponse = await fetch("/api/stores");
         const storesData = await storesResponse.json();
@@ -60,7 +64,7 @@ export default function AnalyticsPage() {
           !storesResponse.ok ||
           !storesData.stores?.length
         ) {
-          return;
+          throw new Error(storesData.message || "Your store could not be loaded.");
         }
 
         const ownerStore = storesData.stores[0];
@@ -76,12 +80,8 @@ export default function AnalyticsPage() {
         const productsData =
           await productsResponse.json();
 
-        if (
-          productsResponse.ok &&
-          productsData.products
-        ) {
-          setProducts(productsData.products);
-        }
+        if (!productsResponse.ok) throw new Error(productsData.message || "Products could not be loaded.");
+        setProducts(productsData.products || []);
 
         const ordersResponse = await fetch(
           "/api/store-owner/orders"
@@ -90,24 +90,17 @@ export default function AnalyticsPage() {
         const ordersData =
           await ordersResponse.json();
 
-        if (
-          ordersResponse.ok &&
-          ordersData.orders
-        ) {
-          setOrders(ordersData.orders);
-        }
-      } catch (error) {
-        console.error(
-          "Load analytics error:",
-          error
-        );
+        if (!ordersResponse.ok) throw new Error(ordersData.message || "Orders could not be loaded.");
+        setOrders(ordersData.orders || []);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "Analytics could not be loaded.");
       } finally {
         setLoading(false);
       }
     };
 
     loadAnalytics();
-  }, []);
+  }, [reloadKey]);
 
   /*
    * Orders inside the selected period
@@ -133,12 +126,17 @@ export default function AnalyticsPage() {
    * Total sales for selected period
    */
   const totalSales = useMemo(() => {
-    return periodOrders.reduce(
+    return periodOrders.filter((order) => order.paymentStatus === "PAID").reduce(
       (total, order) =>
         total + Number(order.finalAmount),
       0
     );
   }, [periodOrders]);
+
+  const paidOrders = useMemo(
+    () => periodOrders.filter((order) => order.paymentStatus === "PAID").length,
+    [periodOrders]
+  );
 
   /*
    * Unique customers
@@ -159,7 +157,7 @@ export default function AnalyticsPage() {
   const salesByDay = useMemo(() => {
     const values = Array(period).fill(0);
 
-    periodOrders.forEach((order) => {
+    periodOrders.filter((order) => order.paymentStatus === "PAID").forEach((order) => {
       const orderDate = new Date(order.createdAt);
       const today = new Date();
 
@@ -200,7 +198,7 @@ export default function AnalyticsPage() {
       }
     >();
 
-    periodOrders.forEach((order) => {
+    periodOrders.filter((order) => order.paymentStatus === "PAID").forEach((order) => {
       order.items?.forEach((item) => {
         const productId =
           item.product?.productId;
@@ -347,21 +345,21 @@ export default function AnalyticsPage() {
                 </strong>
 
                 <p>
-                  Last {period} days
+                  Verified paid sales · last {period} days
                 </p>
               </div>
 
               <div className="analytics-stat-card">
                 <span className="analytics-stat-label">
-                  Orders
+                  Paid Orders
                 </span>
 
                 <strong>
-                  {periodOrders.length}
+                  {paidOrders}
                 </strong>
 
                 <p>
-                  Last {period} days
+                  Pending orders are not revenue
                 </p>
               </div>
 
@@ -536,7 +534,15 @@ export default function AnalyticsPage() {
                     No product sales found
                     for this period.
                   </div>
-                ) : (
+        ) : error ? (
+          <section className="analytics-loading analytics-error" role="alert">
+            <h2>Analytics could not be loaded</h2>
+            <p>{error}</p>
+            <button type="button" className="analytics-retry" onClick={() => setReloadKey((value) => value + 1)}>
+              Try again
+            </button>
+          </section>
+        ) : (
                   <div className="top-products">
 
                     {topProducts.map(

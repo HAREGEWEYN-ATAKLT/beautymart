@@ -1,462 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 import { prisma } from "../../../lib/prisma";
+import { CheckoutError, createOrRecoverCheckout } from "../../../lib/checkout";
+import { getActiveRequestUser } from "../../../lib/request-auth";
 
+// The checkout mutation is implemented below through the shared,
+// transactional checkout service in lib/checkout.ts.
 export async function POST(request: NextRequest) {
   try {
-    // 1. Check the logged-in user
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user || user.role !== "CUSTOMER") {
       return NextResponse.json(
-        { message: "You must be logged in to place an order." },
+        { message: "You must be logged in as a customer to place an order." },
         { status: 401 }
       );
     }
 
-    // 2. Get the order information sent by checkout
-    const body = await request.json();
-
-    const {
-      items,
-      region,
-      city,
-      subCity,
-      woreda,
-      houseNumber,
-      paymentMethod,
-    } = body;
-
-    // 3. Basic validation
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        { message: "Your cart is empty." },
-        { status: 400 }
-      );
-    }
-
-    if (!region || !city) {
-      return NextResponse.json(
-        { message: "Region and city are required." },
-        { status: 400 }
-      );
-    }
-
-    if (!paymentMethod) {
-      return NextResponse.json(
-        { message: "Payment method is required." },
-        { status: 400 }
-      );
-    }
-const paymentProviderMap = {
-  Telebirr: "TELEBIRR",
-  Chapa: "CHAPA",
-  Bank: "BANK",
-} as const;
-
-const paymentProvider =
-  paymentProviderMap[paymentMethod as keyof typeof paymentProviderMap];
-
-if (!paymentProvider) {
-  return NextResponse.json(
-    { message: "Invalid payment method." },
-    { status: 400 }
-  );
-}
-    // 4. Find the customer belonging to the logged-in user
     const customer = await prisma.customer.findUnique({
-      where: {
-        userId: String(token.id),
-      },
+      where: { userId: user.userId },
+      select: { customerId: true },
     });
-
     if (!customer) {
-      return NextResponse.json(
-        {
-          message:
-            "Customer profile not found. Please make sure your account is set up correctly.",
-        },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: "Customer profile not found." }, { status: 404 });
     }
 
-    // 5. Create or reuse the delivery address
-    const address = await prisma.address.create({
-      data: {
-        customerId: customer.customerId,
-        region: String(region).trim(),
-        city: String(city).trim(),
-        subCity: subCity ? String(subCity).trim() : null,
-        woreda: woreda ? String(woreda).trim() : null,
-        houseNumber: houseNumber ? String(houseNumber).trim() : null,
-      },
-    });
-
-    // 6. For now, make one order per store.
-    //    This is important because payments go directly to each store.
-    const itemsByStore = new Map<string, typeof items>();
-
-    for (const item of items) {
-      if (!item.storeId) {
-        return NextResponse.json(
-          {
-            message: `Store ID is missing for ${item.name}.`,
-          },
-          { status: 400 }
-        );
-      }
-
-      if (!itemsByStore.has(item.storeId)) {
-        itemsByStore.set(item.storeId, []);
-      }
-
-      itemsByStore.get(item.storeId)!.push(item);
-    }
-
-    const createdOrders = [];
-
-    // 7. Create an order for each store
-    for (const [storeId, storeItems] of itemsByStore) {
-      // Check that the store exists and is active
-    
-      // Check that the store and its subscription are active.
-      const store = await prisma.store.findFirst({
-        where: {
-          storeId,
-          status: "ACTIVE",
-        },
-        include: {
-          subscription: true,
-        },
-      });
-
-      if (
-        !store ||
-        !store.subscription ||
-        store.subscription.status !== "ACTIVE" ||
-        !store.subscription.isActive ||
-        store.subscription.endDate <= new Date()
-      ) {
-        return NextResponse.json(
-          {
-            message:
-              "This store is unavailable because its subscription is inactive or expired.",
-          },
-          { status: 403 }
-        );
-      }
-
-
-      if (!store) {
-        return NextResponse.json(
-          {
-            message: "One of the stores in your cart is no longer available.",
-          },
-          { status: 404 }
-        );
-      }
-
-     let totalAmount = 0;
-let totalDiscountAmount = 0;
-
-      // 8. Verify every product belongs to this store
-      for (const item of storeItems) {
-     const product = await prisma.product.findFirst({
-  where: {
-    productId: item.id,
-    storeId,
-    isActive: true,
-  },
-  include: {
-    inventory: true,
-    productDiscounts: {
-      include: {
-        discount: true,
-      },
-    },
-  },
-});
-        if (!product) {
-          return NextResponse.json(
-            {
-              message: `${item.name} is no longer available.`,
-            },
-            { status: 400 }
-          );
-        }
-
-        const quantity = Number(item.quantity);
-
-        if (!Number.isInteger(quantity) || quantity < 1) {
-          return NextResponse.json(
-            {
-              message: `Invalid quantity for ${product.productName}.`,
-            },
-            { status: 400 }
-          );
-        }
-
-        if (!product.inventory || product.inventory.quantity < quantity) {
-          return NextResponse.json(
-            {
-              message: `Not enough stock for ${product.productName}.`,
-            },
-            { status: 400 }
-          );
-        }
-
-       const originalPrice = Number(product.price);
-
-const now = new Date();
-
-const activeDiscount = product.productDiscounts.find(
-  (productDiscount) => {
-    const discount = productDiscount.discount;
-
-    return (
-      discount.isActive &&
-      new Date(discount.startDate) <= now &&
-      new Date(discount.endDate) >= now
+    const result = await createOrRecoverCheckout(
+      customer.customerId,
+      await request.json(),
+      request.headers.get("idempotency-key")?.trim() ?? ""
     );
-  }
-);
-
-let unitPrice = originalPrice;
-let discountPerUnit = 0;
-
-if (activeDiscount) {
-  const discount = activeDiscount.discount;
-  const discountValue = Number(discount.discountValue);
-
-  if (discount.discountType === "PERCENTAGE") {
-    discountPerUnit =
-      (originalPrice * discountValue) / 100;
-  } else {
-    discountPerUnit = discountValue;
-  }
-
-  discountPerUnit = Math.min(
-    discountPerUnit,
-    originalPrice
-  );
-
-  unitPrice = originalPrice - discountPerUnit;
-}
-
-totalAmount += unitPrice * quantity;
-totalDiscountAmount += discountPerUnit * quantity;
-      }
-
-      // 9. Create the order and order items in one transaction
-      const order = await prisma.$transaction(async (tx) => {
-        const orderNumber = `BM-${Date.now()}-${Math.floor(
-          Math.random() * 1000
-        )}`;
-        const newOrder = await tx.order.create({
-          data: {
-            storeId,
-            customerId: customer.customerId,
-            addressId: address.addressId,
-            orderNumber,
-           totalAmount,
-discountAmount: totalDiscountAmount,
-finalAmount: totalAmount,
-            paymentStatus: "PENDING",
-            orderStatus: "PENDING",
-          },
-        });
-
-        for (const item of storeItems) {
-         const product = await tx.product.findUnique({
-  where: {
-    productId: item.id,
-  },
-  include: {
-    productDiscounts: {
-      include: {
-        discount: true,
-      },
-    },
-  },
-});
-
-          if (!product) {
-            throw new Error("Product not found.");
-          }
-
-const quantity = Number(item.quantity);
-
-const originalPrice = Number(product.price);
-const now = new Date();
-
-const activeDiscount = product.productDiscounts.find(
-  (productDiscount) => {
-    const discount = productDiscount.discount;
-
-    return (
-      discount.isActive &&
-      new Date(discount.startDate) <= now &&
-      new Date(discount.endDate) >= now
-    );
-  }
-);
-
-let unitPrice = originalPrice;
-let discountPerUnit = 0;
-
-if (activeDiscount) {
-  const discount = activeDiscount.discount;
-  const discountValue = Number(discount.discountValue);
-
-  if (discount.discountType === "PERCENTAGE") {
-    discountPerUnit =
-      (originalPrice * discountValue) / 100;
-  } else {
-    discountPerUnit = discountValue;
-  }
-
-  discountPerUnit = Math.min(
-    discountPerUnit,
-    originalPrice
-  );
-
-  unitPrice = originalPrice - discountPerUnit;
-}
-
-const discountAmount = discountPerUnit * quantity;
-const totalPrice = unitPrice * quantity;
-
-          await tx.orderItem.create({
-            data: {
-              orderId: newOrder.orderId,
-              productId: product.productId,
-              quantity,
-              unitPrice,
-              discountAmount,
-              totalPrice,
-            },
-          });
-
-          // Reduce inventory
-          await tx.inventory.update({
-            where: {
-              productId: product.productId,
-            },
-            data: {
-              quantity: {
-                decrement: quantity,
-              },
-            },
-          });
-        }
-
-        // Create a pending payment record
-        await tx.payment.create({
-          data: {
-            orderId: newOrder.orderId,
-            storeId,
-           provider: paymentProvider,
-            amount: totalAmount,
-            status: "PENDING",
-          },
-        });
-
-        return newOrder;
-      });
-
-      
-      
-      // Notify the store owner and active Super Admins after order creation.
-      // Notification failures must not interrupt checkout.
-      try {
-        const [store, admins] = await Promise.all([
-          prisma.store.findUnique({
-            where: { storeId },
-            select: {
-              ownerId: true,
-              storeName: true,
-            },
-          }),
-          prisma.user.findMany({
-            where: {
-              role: "SUPER_ADMIN",
-              isActive: true,
-            },
-            select: {
-              userId: true,
-            },
-          }),
-        ]);
-
-        const notifications = [];
-
-        if (store) {
-          notifications.push({
-            userId: store.ownerId,
-            title: "New order received",
-            message: `A new order (${order.orderNumber}) has been placed for ${store.storeName}.`,
-            notificationType: "ORDER" as const,
-          });
-        }
-
-        for (const admin of admins) {
-          notifications.push({
-            userId: admin.userId,
-            title: "New marketplace order",
-            message: `Order ${order.orderNumber} has been placed. Store: ${store?.storeName ?? storeId}.`,
-            notificationType: "ORDER" as const,
-            deduplicationKey: `admin-order:${order.orderId}:${admin.userId}`,
-          });
-        }
-
-        if (notifications.length > 0) {
-          await prisma.notification.createMany({
-            data: notifications,
-            skipDuplicates: true,
-          });
-        }
-      } catch (notificationError) {
-        console.error(
-          "Order was created, but one or more notifications failed:",
-          notificationError
-        );
-      }
-
-
-      createdOrders.push(order);
-    }
 
     return NextResponse.json(
       {
-        message: "Order created successfully.",
-        orders: createdOrders,
+        message: result.created
+          ? "Orders created. Complete payment for each store order separately."
+          : "Existing checkout recovered. No duplicate orders were created.",
+        checkout: result.checkout,
       },
-      { status: 201 }
+      { status: result.created ? 201 : 200 }
     );
   } catch (error) {
-    console.error("Create order error:", error);
-
-    return NextResponse.json(
-      {
-        message: "Something went wrong while creating your order.",
-      },
-      { status: 500 }
-    );
+    if (error instanceof CheckoutError) {
+      return NextResponse.json({ message: error.message }, { status: error.status });
+    }
+    console.error("Checkout creation error:", error);
+    return NextResponse.json({ message: "Unable to create checkout." }, { status: 500 });
   }
 }
+
 export async function GET(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      secureCookie: false,
-    });
+    const user = await getActiveRequestUser(request);
 
-    if (!token?.id) {
+    if (!user || user.role !== "CUSTOMER") {
       return NextResponse.json(
         { message: "You must be logged in." },
         { status: 401 }
@@ -465,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     const customer = await prisma.customer.findUnique({
       where: {
-        userId: String(token.id),
+        userId: user.userId,
       },
       select: {
         customerId: true,

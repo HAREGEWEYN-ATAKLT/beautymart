@@ -9,6 +9,7 @@ import "./admin.css";
 
 type DashboardStats = {
   totalStores: number;
+  activeStores: number;
   totalStoreOwners: number;
   totalCustomers: number;
   totalProducts: number;
@@ -215,9 +216,9 @@ setRecentStores(activityData.recentStores);
             <div>
               <p>ACTIVE MARKETPLACE</p>
               <strong>
-                {loading ? "—" : stats?.totalStores ?? 0}
+                {loading ? "—" : stats?.activeStores ?? 0}
               </strong>
-              <span>Stores currently registered</span>
+              <span>Stores currently able to sell</span>
             </div>
 
             <div>

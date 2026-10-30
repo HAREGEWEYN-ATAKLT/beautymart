@@ -91,7 +91,7 @@ color: "#2d282b",
 });
 
 return ( <main className="auth-page"> <div className="auth-container"> <div className="auth-brand"> <Link href="/" className="auth-logo">
-Beauty<span>Mart</span> </Link> <p>ETHIOPIA'S BEAUTY MARKETPLACE</p> </div>
+Beauty<span>Mart</span> </Link> <p>ETHIOPIA&apos;S BEAUTY MARKETPLACE</p> </div>
 
 
     <div className="auth-layout">

@@ -9,7 +9,7 @@ export default function ContactPage() {
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
-        <span className={styles.eyebrow}>WE'RE HERE TO HELP</span>
+        <span className={styles.eyebrow}>WE&apos;RE HERE TO HELP</span>
         <h1>Get in <span>touch.</span></h1>
         <p>
           Have a question about shopping, an order, or selling on BeautyMart?

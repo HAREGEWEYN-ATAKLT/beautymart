@@ -13,6 +13,7 @@ type Product = {
   };
   inventory: {
     quantity: number;
+    updatedAt: string;
   } | null;
   images?: {
     productImageId: string;
@@ -304,6 +305,7 @@ export default function EditProductPage() {
           categoryName: category,
           price,
           quantity: stock,
+          inventoryUpdatedAt: product?.inventory?.updatedAt,
           description,
         }),
       });
